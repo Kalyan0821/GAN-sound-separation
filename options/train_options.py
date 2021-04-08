@@ -1,9 +1,10 @@
-from base_options import BaseOptions
+from .base_options import BaseOptions
 
 
 class TrainOptions(BaseOptions):
 	def __init__(self):
 		super().__init__()
+		
 		self.parser.add_argument('--display_freq', type=int, default=10, help='frequency of displaying average loss and accuracy')
 		self.parser.add_argument('--save_latest_freq', type=int, default=200, help='frequency of saving the latest results')
 		self.parser.add_argument('--continue_train', action='store_true', help='continue training: load the latest model')
@@ -43,7 +44,7 @@ class TrainOptions(BaseOptions):
 		self.parser.add_argument('--mask_thresh', default=0.5, type=float, help='mask threshold for binary mask')
 		self.parser.add_argument('--with_additional_scene_image', action='store_true', help="whether to append an extra scene image")	
 
-		#optimizer arguments
+		# optimizer arguments
 		self.parser.add_argument('--lr_visual', type=float, default=0.0001, help='learning rate for visual stream')
 		self.parser.add_argument('--lr_unet', type=float, default=0.001, help='learning rate for unet')
 		self.parser.add_argument('--lr_classifier', type=float, default=0.001, help='learning rate for audio classifier')
@@ -51,4 +52,6 @@ class TrainOptions(BaseOptions):
 		self.parser.add_argument('--optimizer', default='sgd', type=str, help='adam or sgd for optimization')
 		self.parser.add_argument('--beta1', default=0.9, type=float, help='momentum for sgd, beta1 for adam')
 		self.parser.add_argument('--weight_decay', default=0.0001, type=float, help='weights regularizer')
+		
+		# train/val/test mode
 		self.mode = 'train'

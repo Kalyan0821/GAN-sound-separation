@@ -3,8 +3,8 @@ import random
 import os
 import h5py
 from PIL import Image, ImageEnhance, ImageOps
-from dataset_utils import get_vid_name_MUSIC, get_audio_root_MUSIC, get_clip_name_MUSIC, get_frame_root_MUSIC
-from dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
+from .dataset_utils import get_vid_name_MUSIC, get_audio_root_MUSIC, get_clip_name_MUSIC, get_frame_root_MUSIC
+from .dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
 
 
 def initialize_FAIRPlay(self, opt):
@@ -13,22 +13,27 @@ def initialize_AudioSet(self, opt):
 	pass
 
 def initialize_MUSIC(self, opt):
-	self.detection_dic = {} # {video_name: [clip_detection_npy_paths]} dict 
+	self.detection_dic = dict()  # {video_name: [clip_detection_npy_paths]} dict 
 
 	# hdf5 file containing .npy clip-detection file paths
 	if opt.mode == "train":
 		h5f_path = os.path.join(opt.hdf5_path, "train.h5")
 	elif opt.mode == "val":
 		h5f_path = os.path.join(opt.hdf5_path, "val.h5")
-	h5f = h5py.File(h5f_path, 'r')
 
-	detections = h5f["detection"][:]
-	for detection in detections:  # iterate through all .npy paths in the dataset
-		vidname = get_vid_name_MUSIC(detection)  # get name of video the clip belongs to
-		if self.detection_dic.has_key(vidname):
-			self.detection_dic[vidname].append(detection)
-		else:
-			self.detection_dic[vidname] = [detection]
+
+	
+
+
+	
+	with h5py.File(h5f_path, 'r') as f:
+		detections = f["detection"][:]  # list of all .npy clip detection file paths
+		for detection in detections:  # iterate through all .npy paths
+			vidname = get_vid_name_MUSIC(detection)  # get name of video the clip belongs to
+			if self.detection_dic.has_key(vidname):
+				self.detection_dic[vidname].append(detection)
+			else:
+				self.detection_dic[vidname] = [detection]
 
 	if opt.mode == 'val':
 		vision_transform_list = [transforms.Resize((224,224)), transforms.ToTensor()]
@@ -44,8 +49,8 @@ def initialize_MUSIC(self, opt):
 	# load hdf5 file of scene images
 	if opt.with_additional_scene_image:
 		h5f_path = os.path.join(opt.scene_path)
-		h5f = h5py.File(h5f_path, 'r')
-		self.scene_images = h5f["image"][:]
+		with h5py.File(h5f_path, 'r') as f:
+			self.scene_images = f["image"][:]
 
 
 class AudioVisualDataset(Dataset):

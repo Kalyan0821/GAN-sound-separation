@@ -1,11 +1,11 @@
 from torch.utils.data import DataLoader
-from dataset import AudioVisualDataset
+from .dataset import AudioVisualDataset  # ".file": "file" is in same directory 
 
 def create_dataloader(opt):
 	# create the dataset
 	assert opt.model in ["MUSIC", "FAIR-Play", "AudioSet"]
 
-	dataset = AudioVisualMUSICDataset(opt)  # define __init__() to mimic inititalize()
+	dataset = AudioVisualDataset(opt)
 	print(f"Dataset for {opt.model} was created")
 
 	# create the dataloader
