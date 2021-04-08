@@ -6,9 +6,10 @@ class BaseOptions():
 	def __init__(self):
 		self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-		self.parser.add_argument('--model', type=str, default="MUSIC", help='chooses how datasets are loaded.')
-		self.parser.add_argument('--hdf5_path', default='/your_root/hdf5/MUSICDataset/soloduet')
-		# self.parser.add_argument('--data_path', default='/your_data_root/MUSICDataset/solo/', help='path to frame/audio/detections')
+		self.parser.add_argument('--dataset', type=str, default="MUSIC", help='affects how data is loaded')
+		self.parser.add_argument('--all_paths_dir', default='./all_paths')
+		
+		# self.parser.add_argument('--data_path', default='/your_data_root/MUSICDataset/solo/', help='path to frame/audio/detections for testing')
 		self.parser.add_argument('--scene_path', default='/your_root/hdf5/ADE.h5', help='path to scene images')
 		self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
 

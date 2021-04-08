@@ -6,3 +6,7 @@ from data.dataloader import create_dataloader
 opt = TrainOptions().parse()
 dataloader_train = create_dataloader(opt)
 
+for example in dataloader_train:
+	print(example)
+	break
+

@@ -1,3 +1,5 @@
+NUM_PER_MIX: 2
+all_paths_dir: ./all_paths/
 audio_sampling_rate: 11025
 audio_window: 65535
 batchSize: 32
@@ -7,12 +9,12 @@ classifier_loss_weight: 1
 classifier_pool: maxpool
 continue_train: False
 coseparation_loss_weight: 1
+dataset: MUSIC
 decay_factor: 0.1
 display_freq: 10
 enable_data_augmentation: True
 epoch_count: 0
 gpu_ids: [0]
-hdf5_path: /your_root/hdf5/MUSICDataset/soloduet
 log_freq: True
 lr_classifier: 0.001
 lr_steps: [10000, 20000]
@@ -22,13 +24,11 @@ mask_loss_type: L1
 mask_thresh: 0.5
 measure_time: False
 mode: train
-model: MUSIC
 nThreads: 16
 name: audioVisual
 niter: 1
 num_batch: 30000
 num_object_per_video: 2
-num_per_mix: 2
 num_visualization_examples: 20
 number_of_classes: 15
 optimizer: sgd

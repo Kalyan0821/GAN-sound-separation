@@ -1,8 +1,12 @@
+import numpy as np
+import random
+import librosa
+import os
 
 def sample_object_detections(detection_bbs):  # input: np.array from a single .npy clip-detection file
     class_index_clusters = {}  # {class_id, [frame_indices_list]} dict
     for i in range(detection_bbs.shape[0]):  # iterate over frames in the clip
-        if class_index_clusters.has_key(int(detection_bbs[i, 1])):
+        if int(detection_bbs[i, 1]) in class_index_clusters:
             class_index_clusters[int(detection_bbs[i, 1])].append(i)  # add each frame under one/more detected classes
         else:
             class_index_clusters[int(detection_bbs[i,1])] = [i]
@@ -52,18 +56,15 @@ def augment_image(image):
 	return image
 
 
-# Change these
-def get_vid_name_MUSIC(npy_path):
-    return os.path.basename(npy_path)[0:11]
+def get_vid_path_MUSIC(npy_path):
+    return '/'.join(npy_path.split('/')[:-1])
 
-def get_audio_root_MUSIC(npy_path):
-    return os.path.join(os.path.dirname(os.path.dirname(npy_path)), 'audio_11025')
+def get_audio_path_MUSIC(npy_path):
+    return os.path.join('/'.join(npy_path.split('/')[:-4]), "audio_11025", '/'.join(npy_path.split('/')[-3:-1])) + ".wav"
 
-def get_clip_name_MUSIC(npy_path):
-    return os.path.basename(npy_path)[0:-4]
+def get_frames_path_MUSIC(npy_path):
+    return os.path.join('/'.join(npy_path.split('/')[:-4]), "frames", '/'.join(npy_path.split('/')[-3:]))[:-4]
 
-def get_frame_root_MUSIC(npy_path):
-    return os.path.join(os.path.dirname(os.path.dirname(npy_path)), 'frame')
 
 
 

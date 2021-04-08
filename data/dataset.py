@@ -1,10 +1,12 @@
 from torch.utils.data import Dataset
+import torchvision.transforms as transforms
 import random
 import os
 import h5py
 from PIL import Image, ImageEnhance, ImageOps
-from .dataset_utils import get_vid_name_MUSIC, get_audio_root_MUSIC, get_clip_name_MUSIC, get_frame_root_MUSIC
+from .dataset_utils import get_vid_path_MUSIC, get_audio_path_MUSIC, get_frames_path_MUSIC
 from .dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
+import numpy as np
 
 
 def initialize_FAIRPlay(self, opt):
@@ -15,26 +17,23 @@ def initialize_AudioSet(self, opt):
 def initialize_MUSIC(self, opt):
 	self.detection_dic = dict()  # {video_name: [clip_detection_npy_paths]} dict 
 
-	# hdf5 file containing .npy clip-detection file paths
+
 	if opt.mode == "train":
-		h5f_path = os.path.join(opt.hdf5_path, "train.h5")
+		detections_file = os.path.join(opt.all_paths_dir, opt.dataset, "train.txt")
 	elif opt.mode == "val":
-		h5f_path = os.path.join(opt.hdf5_path, "val.h5")
-
-
+		detections_file = os.path.join(opt.all_paths_dir, opt.dataset, "val.txt")
 	
+	with open(detections_file, 'r') as f:
+		detections = [s[:-1] for s in f.readlines()]  # list of all .npy clip detection file paths (strip the '\n')
 
-
-	
-	with h5py.File(h5f_path, 'r') as f:
-		detections = f["detection"][:]  # list of all .npy clip detection file paths
 		for detection in detections:  # iterate through all .npy paths
-			vidname = get_vid_name_MUSIC(detection)  # get name of video the clip belongs to
-			if self.detection_dic.has_key(vidname):
-				self.detection_dic[vidname].append(detection)
+			vid_path = get_vid_path_MUSIC(detection)  # get name of video the clip belongs to
+			if vid_path in self.detection_dic:
+				self.detection_dic[vid_path].append(detection)
 			else:
-				self.detection_dic[vidname] = [detection]
+				self.detection_dic[vid_path] = [detection]
 
+	# vision transforms
 	if opt.mode == 'val':
 		vision_transform_list = [transforms.Resize((224,224)), transforms.ToTensor()]
 	elif opt.preserve_ratio:
@@ -59,11 +58,11 @@ class AudioVisualDataset(Dataset):
 		self.opt = opt
 		random.seed(opt.seed)
 
-		if opt.model == "MUSIC":
+		if opt.dataset == "MUSIC":
 			initialize_MUSIC(self, opt)
-		elif opt.model == "FAIR-Play":
+		elif opt.dataset == "FAIR-Play":
 			initialize_FAIRPlay(self, opt)
-		elif opt.model == "AudioSet":
+		elif opt.dataset == "AudioSet":
 			initialize_AudioSet(self, opt)
 
 	def __len__(self):  # return number of examples (training/validation)
@@ -95,7 +94,8 @@ class AudioVisualDataset(Dataset):
 		for n in range(self.opt.NUM_PER_MIX):  # iterate over the N clips to be mixed
 			vid = random.randint(1, 100000000000)  # generate a random UNIQUE integer id for each clip
 
-			audio_path = os.path.join(get_audio_root_MUSIC(clip_det_paths[n]), get_clip_name_MUSIC(clip_det_paths[n]) + ".wav")  # for entire video 
+			# audio from the full video
+			audio_path = get_audio_path_MUSIC(clip_det_paths[n])
 			audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate)  # load audio of clip at 11025 Hz (default)
 			audio_segment = sample_audio(audio, self.opt.audio_window)  # load close to 6 secs randomly (default 65535 samples)
 
@@ -107,11 +107,8 @@ class AudioVisualDataset(Dataset):
 			audios[n] = audio_segment  # copy of audio to mix later
 
 			for i in range(detection_bbs.shape[0]):  # iterate over the Cn BB images chosen from the clip
-
-				frame_path = os.path.join(
-					get_frame_root_MUSIC(clip_det_paths[n]),
-					get_clip_name_MUSIC(clip_det_paths[n]), 
-					str(int(detection_bbs[i, 0])).zfill(6) + '.png')
+				# get path of the single randomly sampled frame
+				frame_path = os.path.join(get_frames_path_MUSIC(clip_det_paths[n]), str(int(detection_bbs[i, 0])).zfill(6)+".png")
 
 				label = detection_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
 				

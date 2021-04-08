@@ -14,7 +14,7 @@ class TrainOptions(BaseOptions):
 		self.parser.add_argument('--measure_time', type=bool, default=False, help='measure time of different steps during training')
 		self.parser.add_argument('--niter', type=int, default=1, help='# of epochs to train, set to 1 because we are doing random sampling from the whole dataset')
 		self.parser.add_argument('--num_batch', default=30000, type=int, help='number of batches to train')
-		self.parser.add_argument('--num_per_mix', default=2, type=int, help='number of video clips to mix')		
+		self.parser.add_argument('--NUM_PER_MIX', default=2, type=int, help='number of video clips to mix')		
 		self.parser.add_argument('--num_object_per_video', default=2, type=int, help='max number of objects detected in a video clip')		
 		self.parser.add_argument('--validation_on', type=bool, default=True, help='whether to test on validation set during training')
 		self.parser.add_argument('--validation_freq', type=int, default=500, help='frequency of testing on validation set')

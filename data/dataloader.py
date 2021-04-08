@@ -3,10 +3,10 @@ from .dataset import AudioVisualDataset  # ".file": "file" is in same directory
 
 def create_dataloader(opt):
 	# create the dataset
-	assert opt.model in ["MUSIC", "FAIR-Play", "AudioSet"]
+	assert opt.dataset in ["MUSIC", "FAIR-Play", "AudioSet"]
 
 	dataset = AudioVisualDataset(opt)
-	print(f"Dataset for {opt.model} was created")
+	print(f"Dataset for {opt.dataset} was created")
 
 	# create the dataloader
 	if opt.mode == "train":
