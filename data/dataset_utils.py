@@ -4,6 +4,7 @@ from random import randrange
 import librosa
 import os
 from PIL import Image, ImageEnhance, ImageOps
+import torch
 from torch._six import container_abcs, string_classes, int_classes
 
 def get_vid_path_MUSIC(npy_path):
@@ -84,11 +85,8 @@ numpy_to_torch_map = {
 def object_collate(examples_list):
 
     elem_type = type(examples_list[0])
-    if isinstance(examples_list[0], torch.Tensor):  # if each example is a tensor
-        out = None
-        return torch.stack(examples_list, 0, out=out)
 
-    elif elem_type.__module__ == 'numpy':  # if each example is a numpy array/scalar
+    if elem_type.__module__ == 'numpy':  # if each example is a numpy array/scalar
         elem = examples_list[0]
         if elem_type.__name__ == 'ndarray':
             return torch.cat([torch.from_numpy(b) for b in examples_list], dim=0)
@@ -96,21 +94,8 @@ def object_collate(examples_list):
             py_type = float if elem.dtype.name.startswith('float') else int
             return numpy_to_torch_map[elem.dtype.name](list(map(py_type, examples_list)))
 
-    elif isinstance(examples_list[0], float):  # if each example is a float
-        return torch.tensor(examples_list, dtype=torch.float64)
-
-    elif isinstance(examples_list[0], int_classes):  # if each example is an integer
-        return torch.tensor(examples_list)
-
-    elif isinstance(examples_list[0], string_classes):  # if each example is a string/byte string
-        return examples_list
-
-    elif isinstance(examples_list[0], container_abcs.Mapping):  # if each example is a dict/dict-like
+    elif isinstance(examples_list[0], container_abcs.Mapping):  # if each example is a dict
         return {key: object_collate([d[key] for d in examples_list]) for key in examples_list[0]}  # return a dict (stack for each key)
-
-    elif isinstance(examples_list[0], container_abcs.Sequence):
-        transposed = zip(*examples_list)
-        return [object_collate(samples) for samples in transposed]
 
     raise TypeError(f"Batch must contain tensors, numbers, dicts, or lists. Found {type(examples_list[0])}")
 

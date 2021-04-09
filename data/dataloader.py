@@ -13,8 +13,7 @@ def create_dataloader(opt):
 	elif opt.dataset == "AudioSet":
 		dataset = AudioSetDataset(opt)
 
-	print(f"Dataset for {opt.dataset} was created\n\n")
-
+	print(f"Dataset for {opt.dataset} was created")
 
 	# create the dataloader
 	if opt.mode == "train":
