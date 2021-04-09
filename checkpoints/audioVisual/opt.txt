@@ -1,5 +1,5 @@
 NUM_PER_MIX: 2
-all_paths_dir: ./all_paths/
+all_paths_dir: ./all_paths
 audio_sampling_rate: 11025
 audio_window: 65535
 batchSize: 32

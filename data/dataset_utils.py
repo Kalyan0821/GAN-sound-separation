@@ -1,7 +1,9 @@
 import numpy as np
 import random
+from random import randrange
 import librosa
 import os
+from PIL import Image, ImageEnhance, ImageOps
 
 def sample_object_detections(detection_bbs):  # input: np.array from a single .npy clip-detection file
     class_index_clusters = {}  # {class_id, [frame_indices_list]} dict
@@ -60,7 +62,7 @@ def get_vid_path_MUSIC(npy_path):
     return '/'.join(npy_path.split('/')[:-1])
 
 def get_audio_path_MUSIC(npy_path):
-    return os.path.join('/'.join(npy_path.split('/')[:-4]), "audio_11025", '/'.join(npy_path.split('/')[-3:-1])) + ".wav"
+    return os.path.join('/'.join(npy_path.split('/')[:-4]), "clip_audios_11025", '/'.join(npy_path.split('/')[-3:]))[:-4] + ".wav"
 
 def get_frames_path_MUSIC(npy_path):
     return os.path.join('/'.join(npy_path.split('/')[:-4]), "frames", '/'.join(npy_path.split('/')[-3:]))[:-4]
