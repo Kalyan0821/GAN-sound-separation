@@ -4,6 +4,16 @@ from random import randrange
 import librosa
 import os
 from PIL import Image, ImageEnhance, ImageOps
+from torch._six import container_abcs, string_classes, int_classes
+
+def get_vid_path_MUSIC(npy_path):
+    return '/'.join(npy_path.split('/')[:-1])
+
+def get_audio_path_MUSIC(npy_path):
+    return os.path.join('/'.join(npy_path.split('/')[:-4]), "clip_audios_11025", '/'.join(npy_path.split('/')[-3:]))[:-4] + ".wav"
+
+def get_frames_path_MUSIC(npy_path):
+    return os.path.join('/'.join(npy_path.split('/')[:-4]), "frames", '/'.join(npy_path.split('/')[-3:]))[:-4]
 
 def sample_object_detections(detection_bbs):  # input: np.array from a single .npy clip-detection file
     class_index_clusters = {}  # {class_id, [frame_indices_list]} dict
@@ -58,16 +68,50 @@ def augment_image(image):
 	return image
 
 
-def get_vid_path_MUSIC(npy_path):
-    return '/'.join(npy_path.split('/')[:-1])
+#define customized collate to combine useful objects across video pairs
 
-def get_audio_path_MUSIC(npy_path):
-    return os.path.join('/'.join(npy_path.split('/')[:-4]), "clip_audios_11025", '/'.join(npy_path.split('/')[-3:]))[:-4] + ".wav"
+numpy_to_torch_map = {
+    'float64': torch.DoubleTensor,
+    'float32': torch.FloatTensor,
+    'float16': torch.HalfTensor,
+    'int64': torch.LongTensor,
+    'int32': torch.IntTensor,
+    'int16': torch.ShortTensor,
+    'int8': torch.CharTensor,
+    'uint8': torch.ByteTensor,
+}
 
-def get_frames_path_MUSIC(npy_path):
-    return os.path.join('/'.join(npy_path.split('/')[:-4]), "frames", '/'.join(npy_path.split('/')[-3:]))[:-4]
+def object_collate(examples_list):
 
+    elem_type = type(examples_list[0])
+    if isinstance(examples_list[0], torch.Tensor):  # if each example is a tensor
+        out = None
+        return torch.stack(examples_list, 0, out=out)
 
+    elif elem_type.__module__ == 'numpy':  # if each example is a numpy array/scalar
+        elem = examples_list[0]
+        if elem_type.__name__ == 'ndarray':
+            return torch.cat([torch.from_numpy(b) for b in examples_list], dim=0)
+        if elem.shape == ():
+            py_type = float if elem.dtype.name.startswith('float') else int
+            return numpy_to_torch_map[elem.dtype.name](list(map(py_type, examples_list)))
 
+    elif isinstance(examples_list[0], float):  # if each example is a float
+        return torch.tensor(examples_list, dtype=torch.float64)
+
+    elif isinstance(examples_list[0], int_classes):  # if each example is an integer
+        return torch.tensor(examples_list)
+
+    elif isinstance(examples_list[0], string_classes):  # if each example is a string/byte string
+        return examples_list
+
+    elif isinstance(examples_list[0], container_abcs.Mapping):  # if each example is a dict/dict-like
+        return {key: object_collate([d[key] for d in examples_list]) for key in examples_list[0]}  # return a dict (stack for each key)
+
+    elif isinstance(examples_list[0], container_abcs.Sequence):
+        transposed = zip(*examples_list)
+        return [object_collate(samples) for samples in transposed]
+
+    raise TypeError(f"Batch must contain tensors, numbers, dicts, or lists. Found {type(examples_list[0])}")
 
 
