@@ -4,18 +4,27 @@ from data.dataloader import create_dataloader
 from data.dataset_MUSIC import MUSICDataset
 
 opt = TrainOptions().parse()
-dataloader_train = create_dataloader(opt)
+opt.seed = 42
+
+# Check dataset
 dataset_train = MUSICDataset(opt)
+print("\nChecking dataset")
+for i, single_sample_dict in enumerate(dataset_train):
+	for k in single_sample_dict:
+		print(k, single_sample_dict[k].shape, single_sample_dict[k].dtype)
+	print()
+	if i == 5:
+		break
 
-single_sample = dataset_train[0]
-for k in single_sample:
-	print(k, single_sample[k].shape, single_sample[k].dtype)
 
+# Check dataloader
+dataloader_train = create_dataloader(opt)
+print("\nChecking dataloader")
+for batch_dict in dataloader_train:
+	for k in batch_dict:
+		print(k, batch_dict[k].shape, batch_dict[k].dtype)
+	print()
+	if i == 5:
+		break
 
-
-
-
-#for example in dataloader_train:
-#	print(example)
-#	break
 

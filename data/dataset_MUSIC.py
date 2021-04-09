@@ -68,6 +68,8 @@ class MUSICDataset(Dataset):
 		for n in range(self.opt.NUM_PER_MIX):  # iterate over the N videos (default=2) to be mixed
 			clip_det_paths[n] = random.choice(self.detection_dic[videos2Mix[n]])  # randomly sample 1 clip from each video
 			clip_det_bbs[n] = sample_object_detections(np.load(clip_det_paths[n]))  # Cn x 7 array (Cn discovered classes in nth clip)
+			if np.load(clip_det_paths[n]).shape[0] == 0:
+				print(f"Found zero BBs for {clip_det_paths[n]}")
 		
 		audios = [None for n in range(self.opt.NUM_PER_MIX)]  # audios of mixed videos
 		objects_visuals = []  # one cropped out BB per discovered class in any clip
@@ -143,6 +145,7 @@ class MUSICDataset(Dataset):
 				objects_audio_mix_mag.append(torch.FloatTensor(audio_mix_mag).unsqueeze(0))
 				objects_audio_mix_phase.append(torch.FloatTensor(audio_mix_phase).unsqueeze(0))
 
+	
 		# stack (assume Cn discovered classes in the nth clip)
 		visuals = np.vstack(objects_visuals)  # all (C1+...+CN) croppped out BB images across the N clips
 		audio_mags = np.vstack(objects_audio_mag)  # all (C1+...+CN) audio spectograms (repeated for all BB images within a video)
