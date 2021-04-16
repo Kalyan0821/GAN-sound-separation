@@ -4,7 +4,6 @@ from data.dataloader import create_dataloader
 from data.dataset_MUSIC import MUSICDataset
 
 opt = TrainOptions().parse()
-opt.seed = 42
 
 # Check dataset
 dataset_train = MUSICDataset(opt)
