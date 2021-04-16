@@ -9,6 +9,7 @@ if not os.path.isdir(dataset):
 if dataset == "MUSIC":
     top_detections_root = "/datasets/Kranthi/KALYAN/DATASETS/MUSIC_dataset/TOP_detection_results"
     train_npys = []
+    train_solo_npys = []
     val_npys = []
     test_npys = []
 
@@ -25,8 +26,10 @@ if dataset == "MUSIC":
                     test_npys.append(clip_detection_path)
                 else:
                     train_npys.append(clip_detection_path)
+                    if '-' not in ins:  # only 1 instrument
+                        train_solo_npys.append(clip_detection_path)
 
-    print(len(train_npys), len(val_npys), len(test_npys))
+    print(len(train_npys), len(val_npys), len(test_npys), len(train_solo_npys))
 
     with open(os.path.join(dataset, "train.txt"), 'w') as f:
         for npy in train_npys:
@@ -38,6 +41,10 @@ if dataset == "MUSIC":
 
     with open(os.path.join(dataset, "test.txt"), 'w') as f:
         for npy in test_npys:
+            f.write(f"{npy}\n")
+
+    with open(os.path.join(dataset, "train_solos.txt"), 'w') as f:
+        for npy in train_solo_npys:
             f.write(f"{npy}\n")
 
 
