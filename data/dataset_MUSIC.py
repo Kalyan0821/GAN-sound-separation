@@ -113,7 +113,9 @@ class MUSICDataset(Dataset):
 		objects_labels = []  # label corresponding to each BB
 		objects_audio_mag = []  # audio magnitude spectogram from the clip corresponding to each BB
 		objects_audio_phase = []  # audio phase spectogram from the clip corresponding to each BB
-		objects_ids = []
+		objects_ids = []  # 
+		solos_audio_mag = []
+		solos_audio_phase = []
 
 		clip_id = random.randint(1, 100000000000)  # generate a random UNIQUE integer id for each clip
 		# audio
@@ -128,7 +130,7 @@ class MUSICDataset(Dataset):
 
 		# Sample appropriate clean audio segments
 		# This step is not perfect, could be modified further
-		
+
 		if (len(ground_truth_labels) == 1) and (clip_det_bbs.shape[0] == 1):
 			music_labels_str = ground_truth_labels
 
@@ -142,9 +144,11 @@ class MUSICDataset(Dataset):
 				music_labels_str = ground_truth_labels
 				detected_labels_idx = [detected_labels_idx[1]]
 
-			else:
-				print(ground_truth_labels, detected_labels_idx)
-				raise Exception("Could not match detected and true labels\n")
+			else:  # No detected label matches with ground truth
+				print("Could not match detected (2) and true labels (1)")
+				music_labels_str = ground_truth_labels
+				detected_labels_idx = [random.choice(detected_labels_idx)]  # Pick one at random
+
 
 		elif (len(ground_truth_labels) == 2) and (clip_det_bbs.shape[0] == 1):
 			# Include only the available BB
@@ -155,8 +159,8 @@ class MUSICDataset(Dataset):
 				music_labels_str = [ground_truth_labels[1]]
 
 			else:
-				print(ground_truth_labels, detected_labels_idx)
-				raise Exception("Could not match detected and true labels\n")
+				print("Could not match detected (1) and true labels (2)")
+				music_labels_str = [random.choice(ground_truth_labels)]
 
 
 		elif (len(ground_truth_labels) == 2) and (clip_det_bbs.shape[0] == 2):
@@ -172,10 +176,11 @@ class MUSICDataset(Dataset):
 				music_labels_str = ground_truth_labels[::-1]
 
 			else:
-				print(ground_truth_labels, detected_labels_idx)
-				raise Exception("Could not match detected and true labels\n")	
+				print("Could not match detected (2) and true labels (2)")
+				music_labels_str = ground_truth_labels[::random.choice([1, -1])]
 
-		print(music_labels_str, detected_labels_idx)
+
+		# print(music_labels_str, detected_labels_idx)
 		assert len(music_labels_str) == len(detected_labels_idx)
 
 		for music_label in music_labels_str:
@@ -183,10 +188,10 @@ class MUSICDataset(Dataset):
 			clean_audio_path = get_audio_path_MUSIC(clean_detection_path)
 			clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
 			clean_audio_segment = sample_audio(clean_audio, self.opt.audio_window)
+			
 			clean_audio_mag, clean_audio_phase = generate_spectrogram_magphase(clean_audio_segment, self.opt.stft_frame, self.opt.stft_hop)
-			pass
-
-
+			solos_audio_mag.append(torch.FloatTensor(clean_audio_mag).unsqueeze(0))
+			solos_audio_phase.append(torch.FloatTensor(clean_audio_phase).unsqueeze(0))			
 
 
 		for i in range(clip_det_bbs.shape[0]):  # iterate over the C BB-images chosen from the clip
@@ -227,20 +232,25 @@ class MUSICDataset(Dataset):
 	
 		# stack (assume C discovered classes in the clip)
 		visuals = np.vstack(objects_visuals)  # all C croppped out BB-images for the clip
-		audio_mags = np.vstack(objects_audio_mag)  # all C audio spectograms (repeated for all BB-images)
+		audio_mags = np.vstack(objects_audio_mag)  # all C overall audio spectograms (repeated for all C BB-images)
 		audio_phases = np.vstack(objects_audio_phase)
 		labels = np.vstack(objects_labels)  # all C labels in the clip, in [-1, 15] (-1: background, 15: random scene)
 		clip_ids = np.vstack(objects_ids)  # all C clip ids (repeated for all BB-images)
+		solo_audio_mags = np.vstack(solos_audio_mag)  # all C randomly sampled, solo audio spectograms 
+		solo_audio_phases = np.vstack(solos_audio_phase)
+
 
 		# Return a dict for each training/validation "example" (index)
 		data = {
 			'labels': labels,
 			'audio_mags': audio_mags,
+			'solo_audio_mags': solo_audio_mags,
 			'vids': clip_ids,
 			'visuals': visuals
 			}
 		if self.opt.mode in ['val', 'test']:  # for quantitative evaluation, include phase spectograms as well
 			data['audio_phases'] = audio_phases
+			data['solo_audio_phases'] = solo_audio_phases
 
 		return data
 
