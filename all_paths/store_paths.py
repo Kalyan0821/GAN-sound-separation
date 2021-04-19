@@ -12,8 +12,25 @@ if dataset == "MUSIC":
     train_solo_npys = []
     val_npys = []
     test_npys = []
+    instruments_part_of_duets = set()
 
     for ins in os.listdir(top_detections_root):
+        ins_path = os.path.join(top_detections_root, ins)
+        for vid in os.listdir(ins_path):
+            vid_path = os.path.join(ins_path, vid)
+            for clip_detection in os.listdir(vid_path):
+                clip_detection_path = os.path.join(vid_path, clip_detection)
+                if '-' in ins:  # duet
+                    instruments_part_of_duets.add(ins.split('-')[0])
+                    instruments_part_of_duets.add(ins.split('-')[1])
+    print(instruments_part_of_duets)
+
+
+    for ins in os.listdir(top_detections_root):
+        if ('-' not in ins) and (ins not in instruments_part_of_duets):  # Remove accordion and erhu, not part of any duets
+            continue
+        print(ins)
+
         ins_path = os.path.join(top_detections_root, ins)
         for vid in os.listdir(ins_path):
             vid_path = os.path.join(ins_path, vid)
