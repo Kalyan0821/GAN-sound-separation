@@ -5,7 +5,7 @@ import random
 import os
 import h5py
 from PIL import Image
-from .dataset_utils import get_vid_path_MUSIC, get_audio_path_MUSIC, get_frames_path_MUSIC
+from .dataset_utils import get_vid_path_MUSIC, get_audio_path_MUSIC, get_frames_path_MUSIC, get_ground_truth_labels_MUSIC
 from .dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
 import numpy as np
 import librosa
@@ -18,7 +18,7 @@ class MUSICDataset(Dataset):
 		self.opt = opt
 		random.seed(opt.seed)
 
-		self.detection_dic = dict()  # {video_name: [clip_detection_npy_paths]} dict 
+		self.detection_dic = dict()  # {video_name: [clip_detection_npy_paths]} dict
 
 		if opt.mode == "train":
 			detections_file = os.path.join(opt.all_paths_dir, opt.dataset, "train.txt")
@@ -34,6 +34,23 @@ class MUSICDataset(Dataset):
 					self.detection_dic[vid_path].append(detection)
 				else:
 					self.detection_dic[vid_path] = [detection]
+
+		if opt.mode == "train":
+			self.train_solos_dict = dict()  # {video_name: [clip_detection_npy_paths]} dict
+			
+			with open(train_solos_file, 'r') as f:
+				detections = [s[:-1] for s in f.readlines()]  # list of all .npy clip detection file paths (strip the '\n')
+				for detection in detections:  # iterate through all .npy paths
+					vid_path = get_vid_path_MUSIC(detection)  # get name of video the clip belongs to
+					true_label = get_ground_truth_labels_MUSIC(vid_path)
+					assert len(true_label) == 1
+					true_label = true_label[0] 
+
+					if true_label in self.train_solos_dict:
+						self.train_solos_dict[true_label].append(detection)
+					else:
+						self.train_solos_dict[true_label] = [detection]
+
 
 		# vision transforms
 		if opt.mode == 'val':
@@ -53,6 +70,27 @@ class MUSICDataset(Dataset):
 			with h5py.File(h5f_path, 'r') as f:
 				self.scene_images = f["image"][:]
 
+		self.detector_labels = ['__background__',
+						   'Banjo', 'Cello', 'Drum', 'Guitar',
+						   'Harp', 'Harmonica', 'Oboe', 'Piano',
+						   'Saxophone', 'Trombone', 'Trumpet', 'Violin',
+						   'Flute', 'Accordion', 'Horn']
+
+
+		self.detector_to_MUSIC_label = {
+							"Accordion": "accordion",
+							"Guitar": "acoustic_guitar",
+							"Cello": "cello",
+							"Oboe": "clarinet",
+							"Flute": "flute",
+							"Saxophone": "saxophone",
+							"Trumpet": "trumpet",
+							"Horn": "tuba",
+							"Violin": "violin",
+							"Piano": "xylophone"
+							}
+
+
 	def __len__(self):  # return number of examples (training/validation)
 		if self.opt.mode == 'train':
 			return self.opt.batchSize * self.opt.num_batch  # number of training examples (default: 30000*32)
@@ -61,13 +99,15 @@ class MUSICDataset(Dataset):
 
 
 	def __getitem__(self, idx):
-		# get 1 random videos to separate- "idx" plays no role here
+		# get 1 random video to separate- "idx" plays no role here
 		video = random.sample(self.detection_dic.keys(), 1)[0]
+		ground_truth_labels = get_ground_truth_labels_MUSIC(video)		
 
 		clip_det_path = random.choice(self.detection_dic[video])  # randomly sample 1 clip from the video
 		clip_det_bbs = sample_object_detections(np.load(clip_det_path))  # C x 7 array (C discovered classes in the clip)
-		if np.load(clip_det_path).shape[0] == 0:
-			print(f"Found zero BBs for {clip_det_path}")
+		detected_labels_idx = clip_det_bbs[:, 1].astype(int)  # all C detected class indices
+		assert clip_det_bbs.shape[0] != 0  # Make sure __background__ is not a detected class
+		assert 0 not in clip_det_bbs[:, 1]
 
 		objects_visuals = []  # one cropped out BB per discovered class in any clip
 		objects_labels = []  # label corresponding to each BB
@@ -84,25 +124,90 @@ class MUSICDataset(Dataset):
 		if(self.opt.enable_data_augmentation and self.opt.mode == 'train'):  
 			audio_segment = augment_audio(audio_segment)
 
-		audio_mag, audio_phase = generate_spectrogram_magphase(audio_segment, self.opt.stft_frame, self.opt.stft_hop)            
+		audio_mag, audio_phase = generate_spectrogram_magphase(audio_segment, self.opt.stft_frame, self.opt.stft_hop)
+
+		# Sample appropriate clean audio segments
+		# This step is not perfect, could be modified further
+		
+		if (len(ground_truth_labels) == 1) and (clip_det_bbs.shape[0] == 1):
+			music_labels_str = ground_truth_labels
+
+		elif (len(ground_truth_labels) == 1) and (clip_det_bbs.shape[0] == 2):
+			# Include only the correct BB
+			if ground_truth_labels[0] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[0]]):
+				music_labels_str = ground_truth_labels
+				detected_labels_idx = [detected_labels_idx[0]]
+
+			elif ground_truth_labels[0] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[1]]):
+				music_labels_str = ground_truth_labels
+				detected_labels_idx = [detected_labels_idx[1]]
+
+			else:
+				print(ground_truth_labels, detected_labels_idx)
+				raise Exception("Could not match detected and true labels\n")
+
+		elif (len(ground_truth_labels) == 2) and (clip_det_bbs.shape[0] == 1):
+			# Include only the available BB
+			if ground_truth_labels[0] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[0]]):
+				music_labels_str = [ground_truth_labels[0]]
+
+			elif ground_truth_labels[1] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[0]]):
+				music_labels_str = [ground_truth_labels[1]]
+
+			else:
+				print(ground_truth_labels, detected_labels_idx)
+				raise Exception("Could not match detected and true labels\n")
+
+
+		elif (len(ground_truth_labels) == 2) and (clip_det_bbs.shape[0] == 2):
+			# Map each BB to a ground-truth label
+			if (ground_truth_labels[0] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[0]])) or \
+			   (ground_truth_labels[1] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[1]])):
+
+				music_labels_str = ground_truth_labels
+
+			elif (ground_truth_labels[1] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[0]])) or \
+				 (ground_truth_labels[0] == self.detector_to_MUSIC_label.get(self.detector_labels[detected_labels_idx[1]])):
+
+				music_labels_str = ground_truth_labels[::-1]
+
+			else:
+				print(ground_truth_labels, detected_labels_idx)
+				raise Exception("Could not match detected and true labels\n")	
+
+		print(music_labels_str, detected_labels_idx)
+		assert len(music_labels_str) == len(detected_labels_idx)
+
+		for music_label in music_labels_str:
+			clean_detection_path = random.choice(self.train_solos_dict[music_label])
+			clean_audio_path = get_audio_path_MUSIC(clean_detection_path)
+			clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
+			clean_audio_segment = sample_audio(clean_audio, self.opt.audio_window)
+			clean_audio_mag, clean_audio_phase = generate_spectrogram_magphase(clean_audio_segment, self.opt.stft_frame, self.opt.stft_hop)
+			pass
+
+
+
 
 		for i in range(clip_det_bbs.shape[0]):  # iterate over the C BB-images chosen from the clip
-			# get path of the single randomly sampled frame of the ith BB-image
-			frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")
 
-			label = clip_det_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
-			
+			if clip_det_bbs[i, 1].astype(int) not in detected_labels_idx:  # don't consider wrong detections
+				continue 
+
+			# get path of the single randomly sampled frame of the ith BB-image
+			frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")			
 			# Crop out the BB image from the sampled frame for each discovered class in the clip
 			object_image = Image.open(frame_path).convert('RGB').crop(
-				(clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i, -1]))
+				(clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i,-1]))
 
 			if(self.opt.enable_data_augmentation and self.opt.mode == 'train'):
 				object_image = augment_image(object_image)
 
 			# reshape and normalize each BB image
 			objects_visuals.append(self.vision_transform(object_image).unsqueeze(0))
-			objects_labels.append(label)
 
+			label = clip_det_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
+			objects_labels.append(label)
 			# store an identical copy of the audio spectogram for each BB image
 			objects_audio_mag.append(torch.FloatTensor(audio_mag).unsqueeze(0))
 			objects_audio_phase.append(torch.FloatTensor(audio_phase).unsqueeze(0))
@@ -124,7 +229,7 @@ class MUSICDataset(Dataset):
 		visuals = np.vstack(objects_visuals)  # all C croppped out BB-images for the clip
 		audio_mags = np.vstack(objects_audio_mag)  # all C audio spectograms (repeated for all BB-images)
 		audio_phases = np.vstack(objects_audio_phase)
-		labels = np.vstack(objects_labels)  # all C labels in the clip, in [-1, 15] (-1: background, 15: additional scene)
+		labels = np.vstack(objects_labels)  # all C labels in the clip, in [-1, 15] (-1: background, 15: random scene)
 		clip_ids = np.vstack(objects_ids)  # all C clip ids (repeated for all BB-images)
 
 		# Return a dict for each training/validation "example" (index)

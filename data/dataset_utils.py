@@ -16,6 +16,10 @@ def get_audio_path_MUSIC(npy_path):
 def get_frames_path_MUSIC(npy_path):
     return os.path.join('/'.join(npy_path.split('/')[:-4]), "frames", '/'.join(npy_path.split('/')[-3:]))[:-4]
 
+def get_ground_truth_labels_MUSIC(vid_path):
+    return vid_path.split('/')[-2].split('-')
+
+
 def sample_object_detections(detection_bbs):  # input: np.array from a single .npy clip-detection file
     class_index_clusters = {}  # {class_id, [frame_indices_list]} dict
     for i in range(detection_bbs.shape[0]):  # iterate over frames in the clip
@@ -69,20 +73,18 @@ def augment_image(image):
 	return image
 
 
-#define customized collate to combine useful objects across video pairs
-
-numpy_to_torch_map = {
-    'float64': torch.DoubleTensor,
-    'float32': torch.FloatTensor,
-    'float16': torch.HalfTensor,
-    'int64': torch.LongTensor,
-    'int32': torch.IntTensor,
-    'int16': torch.ShortTensor,
-    'int8': torch.CharTensor,
-    'uint8': torch.ByteTensor,
-}
-
 def object_collate(examples_list):
+
+    numpy_to_torch_map = {
+        'float64': torch.DoubleTensor,
+        'float32': torch.FloatTensor,
+        'float16': torch.HalfTensor,
+        'int64': torch.LongTensor,
+        'int32': torch.IntTensor,
+        'int16': torch.ShortTensor,
+        'int8': torch.CharTensor,
+        'uint8': torch.ByteTensor,
+    }
 
     elem_type = type(examples_list[0])
 

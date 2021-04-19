@@ -23,13 +23,13 @@ if dataset == "MUSIC":
                 if '-' in ins:  # duet
                     instruments_part_of_duets.add(ins.split('-')[0])
                     instruments_part_of_duets.add(ins.split('-')[1])
+
     print(instruments_part_of_duets)
 
 
     for ins in os.listdir(top_detections_root):
-        if ('-' not in ins) and (ins not in instruments_part_of_duets):  # Remove accordion and erhu, not part of any duets
+        if ('-' not in ins) and (ins not in instruments_part_of_duets):  # Remove solo instruments not part of any duets (accordion, erhu)
             continue
-        print(ins)
 
         ins_path = os.path.join(top_detections_root, ins)
         for vid in os.listdir(ins_path):
