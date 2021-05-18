@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 
 def warpgrid(B, f, T, warp=True):
     x = np.linspace(-1, 1, num=T)
@@ -23,7 +23,7 @@ def resample_logscale(raw_mags, opt, f=256):
         out: B x 1 x f x T """
     B, _, F, T = raw_mags.shape
     grid_warp = torch.from_numpy(warpgrid(B, f, T, warp=True)).to(opt.device)       
-    mags = F.grid_sample(audio_mix_mags, grid_warp)  # B x 1 x f x T   
+    mags = torch.nn.functional.grid_sample(raw_mags, grid_warp, align_corners=False)  # B x 1 x f x T   
     return mags
 
     

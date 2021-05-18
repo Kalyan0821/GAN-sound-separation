@@ -34,7 +34,7 @@ class TrainOptions(BaseOptions):
 		self.parser.add_argument("--mask_loss_type", default="L1", type=str, choices=("L1", "L2", "BCE"), help="type of reconstruction loss on mask")
 		# self.parser.add_argument("--weighted_loss", action="store_true", help="weighted loss")
 		self.parser.add_argument("--logscale_freq", type=bool, default=True, help="whether use log-scale frequency")		
-		# self.parser.add_argument("--with_additional_scene_image", action="store_true", help="whether to append an extra scene image")	
+		self.parser.add_argument("--with_additional_scene_image", action="store_true", help="whether to append an extra scene image")	
 
 
 		self.parser.add_argument("--lr_visual", type=float, default=0.0001, help="learning rate for visual stream")

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
+import sys
 import time
 import numpy as np
 from options.train_options import TrainOptions
@@ -20,34 +21,29 @@ def consistency_loss(predicted_masks, clip_ids, regression_loss, opt):
 	B, C, F, T = predicted_masks.shape
 
 	for clip_id in clip_ids:
-		predicted_mask_sums[clip_id] = torch.zeros(C, F, T)
+		predicted_mask_sums[clip_id.item()] = torch.zeros(C, F, T, device=opt.device)
+
 	for i, clip_id in enumerate(clip_ids):
-		predicted_mask_sums[clip_id] += predicted_masks[i]  # C x F x T
+		predicted_mask_sums[clip_id.item()] += predicted_masks[i]  # C x F x T
 
 	loss = torch.tensor(0., requires_grad=True)
 
 	if opt.mask_loss_type == "BCE":
 		for clip_id in clip_ids:
-            predicted_mask_sums[clip_id] = torch.clamp(predicted_mask_sums[clip_id], min=0, max=1)
-			loss += regression_loss(predicted_mask_sums[clip_id], torch.ones(C, F, T))
-
+			predicted_mask_sums[clip_id.item()] = torch.clamp(predicted_mask_sums[clip_id.item()], min=0, max=1)
+			loss = loss + regression_loss(predicted_mask_sums[clip_id.item()], torch.ones(C, F, T, device=opt.device))
 	else:
 		for clip_id in clip_ids:
-			loss += regression_loss(predicted_mask_sums[clip_id], torch.ones(C, F, T))
+			loss = loss + regression_loss(predicted_mask_sums[clip_id.item()], torch.ones(C, F, T, device=opt.device))
 
 	loss /= B
 	return loss
 
 
-predicted_mask_list[vid_index_dic[vids[i]]] = torch.clamp(predicted_mask_list[vid_index_dic[vids[i]]], 0, 1)
-
-
-
-
 def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 			  net_visual, gen_unet, disc_encoder, disc_classifier,
 			  gen_optimizer, disc_optimizer,
-			  classification_loss):
+			  classification_loss, opt):
 
 	# Take logs
 	log_audio_mags = torch.log(audio_mags + 1e-10)
@@ -70,8 +66,8 @@ def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 	fake_preds = disc_classifier(fake_disc_encodings)
 
 	# Generate real and fake targets
-	real_targets = torch.ones(real_preds.shape[0], 1)
-	fake_targets = torch.zeros(fake_preds.shape[0], 1)
+	real_targets = torch.ones(real_preds.shape[0], 1, device=opt.device)
+	fake_targets = torch.zeros(fake_preds.shape[0], 1, device=opt.device)
 
 	# Loss
 	disc_loss = classification_loss(real_preds, real_targets) + classification_loss(fake_preds, fake_targets)
@@ -80,7 +76,7 @@ def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 
 	with torch.no_grad():
 		real_acc = torch.sum(torch.round(real_preds)==1)/real_preds.shape[0]
-        fake_acc = torch.sum(torch.round(fake_preds)==0)/fake_preds.shape[0] 
+		fake_acc = torch.sum(torch.round(fake_preds)==0)/fake_preds.shape[0] 
 
 
 	return disc_loss.item(), real_acc.item(), fake_acc.item()
@@ -108,7 +104,7 @@ def gen_step(audio_mags, visuals, clip_ids,
 	fake_preds = disc_classifier(fake_disc_encodings)
 
 	# Generate fooling fake targets
-	fake_targets = torch.ones(fake_preds.shape[0], 1)
+	fake_targets = torch.ones(fake_preds.shape[0], 1, device=opt.device)
 
 	# Loss components
 	gen_loss_classification = classification_loss(fake_preds, fake_targets)
@@ -129,7 +125,7 @@ opt.device = torch.device("cuda")
 
 # Dataloaders
 dataloader_train = create_dataloader(opt)
-print(f"Train batches: {len(dataloader_train)}")
+print(f"Train batches: {len(dataloader_train)}\n")
 
 # if opt.validation_on:
 # 	opt.mode = "val"  # set temporalily
@@ -141,6 +137,7 @@ print(f"Train batches: {len(dataloader_train)}")
 if opt.tensorboard:
 	writer = SummaryWriter(logdir=f"./runs/{opt.experiment_id}")
 
+
 # Initialize component networks
 net_visual = components.build_visual(pool_type=opt.visual_pool,
 									 fc_out=512,
@@ -149,8 +146,8 @@ net_visual = components.build_visual(pool_type=opt.visual_pool,
 gen_unet = components.build_unet(unet_num_layers=opt.unet_num_layers,
 								 ngf=opt.unet_ngf,
 								 input_channels=opt.unet_input_nc,
-						    	 output_channels=opt.unet_output_nc,
-							     with_decoder=True,
+								 output_channels=opt.unet_output_nc,
+								 with_decoder=True,
 								 weights=opt.weights_unet)
 
 disc_encoder = components.build_unet(unet_num_layers=opt.unet_num_layers,
@@ -192,15 +189,15 @@ gen_losses_consistency = []
 batch_number = 0
 for epoch in range(opt.num_epochs):
 
-	for i, batch_dict in tqdm(enumerate(dataloader_train)):		
+	for i, batch_dict in tqdm(enumerate(dataloader_train), file=sys.stdout):		
 		batch_number += 1
 
-		labels = batch_dict["labels"].squeeze(dim=1).long()  # B, convert to long-int
-		clip_ids = batch_dict["vids"].squeeze(dim=1)  # B
-		audio_mags = batch_dict["audio_mags"]  # B x 1 x F x T (F=512, T=256)
-		solo_audio_mags = batch_dict["solo_audio_mags"]  # B x 1 x F x T
-		visuals = batch_dict["visuals"]  # B x 3 x n x n (n=224)
-		solo_visuals = batch_dict["solo_visuals"]  # B x 3 x n x n
+		labels = batch_dict["labels"].to(opt.device).squeeze(dim=1).long()  # B, convert to long-int
+		clip_ids = batch_dict["vids"].to(opt.device).squeeze(dim=1)  # B
+		audio_mags = batch_dict["audio_mags"].to(opt.device)  # B x 1 x F x T (F=512, T=256)
+		solo_audio_mags = batch_dict["solo_audio_mags"].to(opt.device)  # B x 1 x F x T
+		visuals = batch_dict["visuals"].to(opt.device)  # B x 3 x n x n (n=224)
+		solo_visuals = batch_dict["solo_visuals"].to(opt.device)  # B x 3 x n x n
 
 		# Resample into log scale
 		if opt.logscale_freq:
@@ -216,24 +213,26 @@ for epoch in range(opt.num_epochs):
 		if batch_number % (opt.num_disc_updates+1) != 0:
 			# discriminator update (frequent in wgan)
 			batch_disc_loss, batch_real_acc, batch_fake_acc = disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
-					  													net_visual, gen_unet, disc_encoder, disc_classifier,
+																		net_visual, gen_unet, disc_encoder, disc_classifier,
 																		gen_optimizer, disc_optimizer,
-																		classification_loss)
+																		classification_loss, opt)
 			disc_losses.append(batch_disc_loss)
 			real_accs.append(batch_real_acc)
 			fake_accs.append(batch_fake_acc)
 
 		elif batch_number % (opt.num_disc_updates+1) == 0:
 			# generator update (infrequent in wgan)
-			batch_gen_loss, batch_gen_loss_consistency = gen_step(audio_mags, visuals, clip_ids
-					 											  net_visual, gen_unet, disc_encoder, disc_classifier,
+			batch_gen_loss, batch_gen_loss_consistency = gen_step(audio_mags, visuals, clip_ids,
+																  net_visual, gen_unet, disc_encoder, disc_classifier,
 																  gen_optimizer, disc_optimizer,
 																  classification_loss, regression_loss,
 																  opt)
 			gen_losses.append(batch_gen_loss)
 			gen_losses_consistency.append(batch_gen_loss_consistency)
 
+
 		if batch_number % opt.display_freq == 0:
+
 			avg_gen_loss = np.mean(gen_losses)
 			avg_disc_loss = np.mean(disc_losses)
 			avg_real_acc = np.mean(real_accs)
@@ -247,12 +246,12 @@ for epoch in range(opt.num_epochs):
 				writer.add_scalar(tag="train_losses/disc_fake_acc", scalar_value=avg_fake_acc, global_step=batch_number, display_name="disc_fake_acc")
 				writer.add_scalar(tag="train_losses/gen_loss_consistency", scalar_value=avg_gen_loss_consistency, global_step=batch_number, display_name="gen_loss_consistency")
 			# Print
-			print(f"\nTraining progress @ Epoch: {epoch}, Iteration: {batch_number}")
+			print(f"\nTraining progress @ Epoch: {epoch+1}, Iteration: {batch_number}\n")
 			print(f"Generator loss: {avg_gen_loss}")
+			print(f"Generator consistency loss: {avg_gen_loss_consistency}")
 			print(f"Discriminator loss: {avg_disc_loss}")
 			print(f"Discriminator real accuracy: {avg_real_acc}")
-			print(f"Discriminator fake accuracy: {avg_fake_acc}")
-			print(f"Generator consistency loss: {avg_gen_loss_consistency}")
+			print(f"Discriminator fake accuracy: {avg_fake_acc}\n\n")
 			# Reset
 			disc_losses = []
 			real_accs = []
