@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=3
 python train.py \
 	   --dataset MUSIC \
 	   --experiment_id music_vanilla \
-	   --batchSize 32 \
+	   --batchSize 16 \
 	   --nThreads 16 \
 	   --tensorboard True \
 	   --num_epochs 5 \

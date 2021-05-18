@@ -1,7 +1,7 @@
 all_paths_dir: ./all_paths
 audio_sampling_rate: 11025
 audio_window: 65535
-batchSize: 32
+batchSize: 16
 beta1: 0.5
 checkpoints_dir: ./checkpoints
 classifier_pool: maxpool
