@@ -127,9 +127,7 @@ if opt.validation_on:
 
 # Tensorboard
 if opt.tensorboard:
-	writer = SummaryWriter()
-else:
-	writer = None
+	writer = SummaryWriter(logdir=f"./runs/{opt.experiment_id}")
 
 # Initialize component networks
 net_visual = components.build_visual(pool_type=opt.visual_pool,
