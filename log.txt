@@ -2,7 +2,7 @@
 all_paths_dir: ./all_paths
 audio_sampling_rate: 11025
 audio_window: 65535
-batchSize: 16
+batchSize: 32
 beta1: 0.5
 checkpoints_dir: ./checkpoints
 classifier_pool: maxpool
@@ -43,194 +43,54 @@ with_additional_scene_image: False
 Dataset for MUSIC was created
 Train batches: 30000
 
-0it [00:00, ?it/s]1it [00:05,  5.06s/it]2it [00:05,  2.38s/it]3it [00:05,  1.47s/it]4it [00:06,  1.01it/s]5it [00:06,  1.30it/s]6it [00:06,  1.68it/s]7it [00:07,  1.90it/s]8it [00:07,  2.22it/s]9it [00:07,  2.29it/s]10it [00:08,  2.47it/s]11it [00:08,  2.50it/s]12it [00:08,  2.80it/s]13it [00:09,  2.67it/s]14it [00:09,  2.84it/s]15it [00:10,  2.74it/s]16it [00:10,  2.92it/s]17it [00:10,  2.82it/s]18it [00:10,  3.07it/s]19it [00:11,  3.02it/s]
+0it [00:00, ?it/s]1it [00:08,  8.53s/it]2it [00:09,  3.83s/it]3it [00:09,  2.39s/it]4it [00:10,  1.65s/it]5it [00:10,  1.29s/it]6it [00:11,  1.04s/it]7it [00:12,  1.10it/s]8it [00:12,  1.29it/s]9it [00:13,  1.38it/s]10it [00:13,  1.54it/s]11it [00:14,  1.53it/s]12it [00:14,  1.67it/s]13it [00:15,  1.63it/s]14it [00:15,  1.74it/s]15it [00:16,  1.67it/s]16it [00:17,  1.75it/s]17it [00:17,  1.62it/s]18it [00:18,  1.71it/s]19it [00:19,  1.66it/s]
 Training progress @ Epoch: 1, Iteration: 20
 
-Generator loss: 1412.3221740722656
-Generator consistency loss: 20164.86376953125
-Discriminator loss: 1.5289461731910705
-Discriminator real accuracy: 0.19993538334965705
-Discriminator fake accuracy: 0.5706013679504395
+Generator loss: 1290.9859619140625
+Generator consistency loss: 18431.21826171875
+Discriminator loss: 1.5445440053939818
+Discriminator real accuracy: 0.19111784659326075
+Discriminator fake accuracy: 0.6508242536336184
 
 
-20it [00:11,  3.12it/s]21it [00:11,  2.99it/s]22it [00:12,  3.16it/s]23it [00:12,  3.00it/s]24it [00:12,  3.11it/s]25it [00:13,  3.02it/s]26it [00:13,  3.15it/s]27it [00:13,  3.02it/s]28it [00:14,  3.16it/s]29it [00:14,  2.92it/s]30it [00:14,  3.12it/s]31it [00:15,  2.85it/s]32it [00:15,  3.02it/s]33it [00:15,  2.85it/s]34it [00:16,  3.12it/s]35it [00:16,  2.97it/s]36it [00:16,  3.17it/s]37it [00:17,  3.06it/s]38it [00:17,  3.18it/s]39it [00:17,  3.03it/s]
+20it [00:19,  1.76it/s]21it [00:20,  1.68it/s]22it [00:20,  1.70it/s]23it [00:21,  1.57it/s]24it [00:21,  1.67it/s]25it [00:22,  1.60it/s]26it [00:23,  1.68it/s]27it [00:23,  1.57it/s]28it [00:24,  1.70it/s]29it [00:25,  1.67it/s]30it [00:25,  1.74it/s]31it [00:26,  1.66it/s]32it [00:26,  1.72it/s]33it [00:27,  1.59it/s]34it [00:28,  1.62it/s]35it [00:28,  1.61it/s]36it [00:29,  1.70it/s]37it [00:29,  1.65it/s]38it [00:30,  1.72it/s]39it [00:31,  1.66it/s]
 Training progress @ Epoch: 1, Iteration: 40
 
-Generator loss: 1266.3357482910155
-Generator consistency loss: 18079.45
-Discriminator loss: 1.4190144777297973
-Discriminator real accuracy: 0.13740032464265822
-Discriminator fake accuracy: 0.7039404511451721
+Generator loss: 1136.8515502929688
+Generator consistency loss: 16230.21455078125
+Discriminator loss: 1.3735554575920106
+Discriminator real accuracy: 0.1340344615280628
+Discriminator fake accuracy: 0.796708133816719
 
 
-40it [00:18,  3.25it/s]41it [00:18,  2.95it/s]42it [00:18,  3.03it/s]43it [00:19,  2.90it/s]44it [00:19,  3.15it/s]45it [00:19,  3.01it/s]46it [00:20,  3.16it/s]47it [00:20,  3.00it/s]48it [00:20,  3.22it/s]49it [00:21,  3.10it/s]50it [00:21,  3.21it/s]51it [00:21,  3.13it/s]52it [00:21,  3.28it/s]53it [00:22,  2.99it/s]54it [00:22,  3.17it/s]55it [00:22,  3.15it/s]56it [00:23,  3.22it/s]57it [00:23,  3.13it/s]58it [00:23,  3.31it/s]59it [00:24,  3.08it/s]
+40it [00:31,  1.78it/s]41it [00:32,  1.67it/s]42it [00:32,  1.73it/s]43it [00:33,  1.69it/s]44it [00:33,  1.75it/s]45it [00:34,  1.69it/s]46it [00:35,  1.75it/s]47it [00:35,  1.72it/s]48it [00:36,  1.79it/s]49it [00:36,  1.64it/s]50it [00:37,  1.75it/s]51it [00:37,  1.69it/s]52it [00:38,  1.71it/s]53it [00:39,  1.62it/s]54it [00:39,  1.71it/s]55it [00:40,  1.69it/s]56it [00:40,  1.79it/s]57it [00:41,  1.69it/s]58it [00:42,  1.75it/s]59it [00:42,  1.68it/s]
 Training progress @ Epoch: 1, Iteration: 60
 
-Generator loss: 1172.2866821289062
-Generator consistency loss: 16735.14677734375
-Discriminator loss: 1.3876111030578613
-Discriminator real accuracy: 0.16370658129453658
-Discriminator fake accuracy: 0.7404183208942413
+Generator loss: 1000.0339416503906
+Generator consistency loss: 14273.90078125
+Discriminator loss: 1.3589924454689026
+Discriminator real accuracy: 0.26135416477918627
+Discriminator fake accuracy: 0.5153115838766098
 
 
-60it [00:24,  3.24it/s]61it [00:24,  3.02it/s]62it [00:25,  3.12it/s]63it [00:25,  3.02it/s]64it [00:25,  3.10it/s]65it [00:26,  3.01it/s]66it [00:26,  2.98it/s]67it [00:26,  2.97it/s]68it [00:27,  3.23it/s]69it [00:27,  2.97it/s]70it [00:27,  3.13it/s]71it [00:28,  2.90it/s]72it [00:28,  3.01it/s]73it [00:28,  2.88it/s]74it [00:29,  3.05it/s]75it [00:29,  2.80it/s]76it [00:29,  2.86it/s]77it [00:30,  2.75it/s]78it [00:30,  2.90it/s]79it [00:31,  2.85it/s]
+60it [00:43,  1.76it/s]61it [00:43,  1.62it/s]62it [00:44,  1.73it/s]63it [00:45,  1.64it/s]64it [00:45,  1.74it/s]65it [00:46,  1.69it/s]66it [00:46,  1.75it/s]67it [00:47,  1.63it/s]68it [00:47,  1.71it/s]69it [00:48,  1.65it/s]70it [00:49,  1.75it/s]71it [00:49,  1.69it/s]72it [00:50,  1.74it/s]73it [00:50,  1.70it/s]74it [00:51,  1.80it/s]75it [00:52,  1.71it/s]76it [00:52,  1.75it/s]77it [00:53,  1.67it/s]78it [00:53,  1.76it/s]79it [00:54,  1.61it/s]
 Training progress @ Epoch: 1, Iteration: 80
 
-Generator loss: 1209.195489501953
-Generator consistency loss: 17263.3060546875
-Discriminator loss: 1.384944498538971
-Discriminator real accuracy: 0.14837333299219607
-Discriminator fake accuracy: 0.6884145975112915
+Generator loss: 1029.0112609863281
+Generator consistency loss: 14686.72880859375
+Discriminator loss: 1.234165906906128
+Discriminator real accuracy: 0.33385016918182375
+Discriminator fake accuracy: 0.510079973936081
 
 
-80it [00:31,  3.05it/s]81it [00:31,  2.90it/s]82it [00:31,  3.03it/s]83it [00:32,  2.92it/s]84it [00:32,  3.06it/s]85it [00:32,  3.02it/s]86it [00:33,  3.23it/s]87it [00:33,  3.08it/s]88it [00:33,  3.21it/s]89it [00:34,  3.12it/s]90it [00:34,  3.19it/s]91it [00:34,  2.79it/s]92it [00:35,  2.94it/s]93it [00:35,  2.93it/s]94it [00:35,  3.11it/s]95it [00:36,  2.92it/s]96it [00:36,  3.04it/s]97it [00:36,  3.00it/s]98it [00:37,  3.15it/s]99it [00:37,  2.87it/s]
+80it [00:54,  1.71it/s]81it [00:55,  1.66it/s]82it [00:56,  1.75it/s]83it [00:56,  1.67it/s]84it [00:57,  1.76it/s]85it [00:57,  1.68it/s]86it [00:58,  1.76it/s]87it [00:59,  1.70it/s]88it [00:59,  1.80it/s]89it [01:00,  1.68it/s]90it [01:00,  1.76it/s]91it [01:01,  1.67it/s]92it [01:01,  1.74it/s]93it [01:02,  1.64it/s]94it [01:03,  1.69it/s]95it [01:03,  1.59it/s]96it [01:04,  1.68it/s]97it [01:05,  1.62it/s]98it [01:05,  1.71it/s]99it [01:06,  1.60it/s]
 Training progress @ Epoch: 1, Iteration: 100
 
-Generator loss: 1058.156561279297
-Generator consistency loss: 15104.723046875
-Discriminator loss: 1.3291972160339356
-Discriminator real accuracy: 0.24242351949214935
-Discriminator fake accuracy: 0.6452652454376221
+Generator loss: 1088.0087646484376
+Generator consistency loss: 15525.629296875
+Discriminator loss: 1.146487581729889
+Discriminator real accuracy: 0.2910344980657101
+Discriminator fake accuracy: 0.3126233980059624
 
 
-100it [00:37,  3.02it/s]101it [00:38,  2.89it/s]102it [00:38,  3.15it/s]103it [00:38,  3.00it/s]104it [00:39,  3.25it/s]105it [00:39,  3.09it/s]106it [00:39,  3.18it/s]107it [00:40,  2.94it/s]108it [00:40,  3.13it/s]109it [00:40,  3.00it/s]110it [00:41,  3.11it/s]111it [00:41,  2.95it/s]112it [00:41,  3.14it/s]113it [00:42,  3.07it/s]114it [00:42,  3.20it/s]115it [00:42,  3.11it/s]116it [00:43,  3.18it/s]117it [00:43,  2.99it/s]118it [00:43,  3.09it/s]119it [00:44,  3.03it/s]
-Training progress @ Epoch: 1, Iteration: 120
-
-Generator loss: 967.5813537597656
-Generator consistency loss: 13809.1666015625
-Discriminator loss: 1.261906051635742
-Discriminator real accuracy: 0.27072264403104784
-Discriminator fake accuracy: 0.43359650373458863
-
-
-120it [00:44,  3.18it/s]121it [00:44,  2.98it/s]122it [00:44,  3.22it/s]123it [00:45,  2.91it/s]124it [00:45,  3.18it/s]125it [00:46,  2.99it/s]126it [00:46,  3.09it/s]127it [00:46,  2.90it/s]128it [00:47,  3.10it/s]129it [00:47,  2.91it/s]130it [00:47,  3.08it/s]131it [00:48,  2.92it/s]132it [00:48,  3.10it/s]133it [00:48,  2.94it/s]134it [00:48,  3.18it/s]135it [00:49,  2.99it/s]136it [00:49,  3.12it/s]137it [00:50,  2.98it/s]138it [00:50,  3.20it/s]139it [00:50,  2.91it/s]
-Training progress @ Epoch: 1, Iteration: 140
-
-Generator loss: 1142.9760803222657
-Generator consistency loss: 16307.4748046875
-Discriminator loss: 0.9959189474582673
-Discriminator real accuracy: 0.2860173210501671
-Discriminator fake accuracy: 0.23017316795885562
-
-
-140it [00:50,  3.11it/s]141it [00:51,  2.82it/s]142it [00:51,  3.01it/s]143it [00:52,  2.84it/s]144it [00:52,  3.05it/s]145it [00:52,  2.87it/s]146it [00:53,  3.01it/s]147it [00:53,  2.95it/s]148it [00:53,  3.02it/s]149it [00:54,  2.88it/s]150it [00:54,  2.94it/s]151it [00:54,  2.92it/s]152it [00:55,  3.08it/s]153it [00:55,  2.95it/s]154it [00:55,  3.14it/s]155it [00:56,  2.82it/s]156it [00:56,  2.92it/s]157it [00:56,  2.84it/s]158it [00:57,  3.04it/s]159it [00:57,  2.94it/s]
-Training progress @ Epoch: 1, Iteration: 160
-
-Generator loss: 1004.9333251953125
-Generator consistency loss: 14333.60244140625
-Discriminator loss: 1.1924562931060791
-Discriminator real accuracy: 0.27699267901480196
-Discriminator fake accuracy: 0.23246643245220183
-
-
-160it [00:57,  3.03it/s]161it [00:58,  2.91it/s]162it [00:58,  3.08it/s]163it [00:58,  2.95it/s]164it [00:59,  3.08it/s]165it [00:59,  2.94it/s]166it [00:59,  3.08it/s]167it [01:00,  2.86it/s]168it [01:00,  2.96it/s]169it [01:00,  2.81it/s]170it [01:01,  3.00it/s]171it [01:01,  2.81it/s]172it [01:01,  2.98it/s]173it [01:02,  2.82it/s]174it [01:02,  3.07it/s]175it [01:02,  2.95it/s]176it [01:03,  3.06it/s]177it [01:03,  2.88it/s]178it [01:03,  3.08it/s]179it [01:04,  2.91it/s]
-Training progress @ Epoch: 1, Iteration: 180
-
-Generator loss: 1003.8574523925781
-Generator consistency loss: 14319.264453125
-Discriminator loss: 1.1259266316890717
-Discriminator real accuracy: 0.3175415858626366
-Discriminator fake accuracy: 0.2244725503027439
-
-
-180it [01:04,  3.06it/s]181it [01:04,  2.95it/s]182it [01:05,  3.01it/s]183it [01:05,  2.90it/s]184it [01:05,  3.04it/s]185it [01:06,  2.99it/s]186it [01:06,  3.17it/s]187it [01:06,  2.93it/s]188it [01:07,  3.05it/s]189it [01:07,  2.87it/s]190it [01:07,  3.01it/s]191it [01:08,  2.89it/s]192it [01:08,  2.97it/s]193it [01:08,  2.87it/s]194it [01:09,  3.04it/s]195it [01:09,  3.00it/s]196it [01:09,  3.17it/s]197it [01:10,  2.98it/s]198it [01:10,  3.08it/s]199it [01:10,  2.94it/s]
-Training progress @ Epoch: 1, Iteration: 200
-
-Generator loss: 924.0139221191406
-Generator consistency loss: 13177.26025390625
-Discriminator loss: 0.9348999500274658
-Discriminator real accuracy: 0.26193780489265917
-Discriminator fake accuracy: 0.19487241022288798
-
-
-200it [01:11,  3.07it/s]201it [01:11,  2.83it/s]202it [01:11,  3.01it/s]203it [01:12,  2.86it/s]204it [01:12,  2.99it/s]205it [01:12,  2.83it/s]206it [01:13,  2.94it/s]207it [01:13,  2.79it/s]208it [01:13,  2.93it/s]209it [01:14,  2.76it/s]210it [01:14,  3.04it/s]211it [01:15,  2.53it/s]212it [01:15,  2.69it/s]213it [01:15,  2.62it/s]214it [01:16,  2.81it/s]215it [01:16,  2.74it/s]216it [01:16,  2.91it/s]217it [01:17,  2.72it/s]218it [01:17,  2.90it/s]219it [01:17,  2.80it/s]
-Training progress @ Epoch: 1, Iteration: 220
-
-Generator loss: 805.1270324707032
-Generator consistency loss: 11468.59970703125
-Discriminator loss: 0.5615476310253144
-Discriminator real accuracy: 0.2336567137390375
-Discriminator fake accuracy: 0.16931239366531373
-
-
-220it [01:18,  3.00it/s]221it [01:18,  2.97it/s]222it [01:18,  3.12it/s]223it [01:19,  2.91it/s]224it [01:19,  3.05it/s]225it [01:19,  3.01it/s]226it [01:20,  3.14it/s]227it [01:20,  2.96it/s]228it [01:20,  3.07it/s]229it [01:21,  2.99it/s]230it [01:21,  3.24it/s]231it [01:21,  3.06it/s]232it [01:22,  3.15it/s]233it [01:22,  2.96it/s]234it [01:22,  3.04it/s]235it [01:23,  2.92it/s]236it [01:23,  3.05it/s]237it [01:23,  2.88it/s]238it [01:24,  3.02it/s]239it [01:24,  2.88it/s]
-Training progress @ Epoch: 1, Iteration: 240
-
-Generator loss: 878.0260406494141
-Generator consistency loss: 12519.303515625
-Discriminator loss: 1.1681763917207717
-Discriminator real accuracy: 0.2158897254616022
-Discriminator fake accuracy: 0.14855206310749053
-
-
-240it [01:24,  3.04it/s]241it [01:25,  2.88it/s]242it [01:25,  3.01it/s]243it [01:25,  2.87it/s]244it [01:26,  2.98it/s]245it [01:26,  2.85it/s]246it [01:26,  2.95it/s]247it [01:27,  2.82it/s]248it [01:27,  3.06it/s]249it [01:27,  2.90it/s]250it [01:28,  3.07it/s]251it [01:28,  2.79it/s]252it [01:29,  2.95it/s]253it [01:29,  2.79it/s]254it [01:29,  2.94it/s]255it [01:30,  2.81it/s]256it [01:30,  2.95it/s]257it [01:30,  2.82it/s]258it [01:31,  3.02it/s]259it [01:31,  2.96it/s]
-Training progress @ Epoch: 1, Iteration: 260
-
-Generator loss: 735.2408721923828
-Generator consistency loss: 10475.0927734375
-Discriminator loss: 0.6509099721908569
-Discriminator real accuracy: 0.25445599146187303
-Discriminator fake accuracy: 0.10684560351073742
-
-
-260it [01:31,  3.07it/s]261it [01:32,  2.89it/s]262it [01:32,  2.99it/s]263it [01:32,  2.90it/s]264it [01:33,  3.03it/s]265it [01:33,  2.86it/s]266it [01:33,  3.02it/s]267it [01:34,  2.83it/s]268it [01:34,  3.06it/s]269it [01:34,  2.95it/s]270it [01:35,  3.14it/s]271it [01:35,  3.01it/s]272it [01:35,  3.09it/s]273it [01:36,  2.99it/s]274it [01:36,  3.09it/s]275it [01:36,  3.01it/s]276it [01:37,  3.05it/s]277it [01:37,  2.98it/s]278it [01:37,  3.15it/s]279it [01:38,  2.99it/s]
-Training progress @ Epoch: 1, Iteration: 280
-
-Generator loss: 828.0317962646484
-Generator consistency loss: 11796.99990234375
-Discriminator loss: 0.8716636404395104
-Discriminator real accuracy: 0.17838156558573245
-Discriminator fake accuracy: 0.07894736751914025
-
-
-280it [01:38,  3.07it/s]281it [01:38,  2.80it/s]282it [01:39,  2.97it/s]283it [01:39,  2.86it/s]284it [01:39,  3.00it/s]285it [01:40,  2.91it/s]286it [01:40,  3.15it/s]287it [01:40,  2.97it/s]288it [01:41,  3.06it/s]289it [01:41,  2.89it/s]290it [01:41,  3.14it/s]291it [01:42,  2.98it/s]292it [01:42,  3.05it/s]293it [01:42,  2.94it/s]294it [01:43,  2.98it/s]295it [01:43,  2.88it/s]296it [01:43,  3.00it/s]297it [01:44,  2.97it/s]298it [01:44,  3.11it/s]299it [01:44,  3.01it/s]
-Training progress @ Epoch: 1, Iteration: 300
-
-Generator loss: 782.964599609375
-Generator consistency loss: 11155.941162109375
-Discriminator loss: 0.8757652401924133
-Discriminator real accuracy: 0.34914431273937224
-Discriminator fake accuracy: 0.17971792444586754
-
-
-300it [01:45,  3.13it/s]301it [01:45,  2.94it/s]302it [01:45,  3.10it/s]303it [01:46,  2.86it/s]304it [01:46,  3.08it/s]305it [01:46,  2.86it/s]306it [01:47,  3.02it/s]307it [01:47,  2.81it/s]308it [01:47,  3.00it/s]309it [01:48,  2.86it/s]310it [01:48,  3.05it/s]311it [01:48,  2.97it/s]312it [01:49,  3.06it/s]313it [01:49,  2.88it/s]314it [01:49,  3.05it/s]315it [01:50,  2.88it/s]316it [01:50,  2.96it/s]317it [01:50,  2.85it/s]318it [01:51,  3.00it/s]319it [01:51,  2.82it/s]
-Training progress @ Epoch: 1, Iteration: 320
-
-Generator loss: 591.653515625
-Generator consistency loss: 8411.130322265624
-Discriminator loss: 0.4943964183330536
-Discriminator real accuracy: 0.2885338421911001
-Discriminator fake accuracy: 0.016111111268401146
-
-
-320it [01:51,  2.97it/s]321it [01:52,  2.85it/s]322it [01:52,  2.90it/s]323it [01:53,  2.75it/s]324it [01:53,  2.94it/s]325it [01:53,  2.80it/s]326it [01:53,  2.98it/s]327it [01:54,  2.78it/s]328it [01:54,  2.85it/s]329it [01:55,  2.81it/s]330it [01:55,  3.06it/s]331it [01:55,  2.87it/s]332it [01:56,  2.99it/s]333it [01:56,  2.83it/s]334it [01:56,  2.95it/s]335it [01:57,  2.69it/s]336it [01:57,  2.90it/s]337it [01:57,  2.81it/s]338it [01:58,  2.92it/s]339it [01:58,  2.86it/s]
-Training progress @ Epoch: 1, Iteration: 340
-
-Generator loss: 842.7892242431641
-Generator consistency loss: 12012.02509765625
-Discriminator loss: 0.7771492555737496
-Discriminator real accuracy: 0.12590058706700802
-Discriminator fake accuracy: 0.08015417568385601
-
-
-340it [01:58,  3.03it/s]341it [01:59,  2.81it/s]342it [01:59,  2.92it/s]343it [01:59,  2.80it/s]344it [02:00,  3.00it/s]345it [02:00,  2.80it/s]346it [02:00,  2.90it/s]347it [02:01,  2.77it/s]348it [02:01,  2.90it/s]349it [02:02,  2.70it/s]350it [02:02,  2.91it/s]351it [02:02,  2.92it/s]352it [02:02,  3.13it/s]353it [02:03,  2.94it/s]354it [02:03,  3.05it/s]355it [02:04,  2.86it/s]356it [02:04,  2.98it/s]357it [02:04,  2.78it/s]358it [02:05,  2.97it/s]359it [02:05,  2.86it/s]
-Training progress @ Epoch: 1, Iteration: 360
-
-Generator loss: 693.889047241211
-Generator consistency loss: 9876.73720703125
-Discriminator loss: 1.2027733892202377
-Discriminator real accuracy: 0.14110570587217808
-Discriminator fake accuracy: 0.12509407810866832
-
-
-360it [02:05,  2.93it/s]361it [02:06,  2.81it/s]362it [02:06,  2.97it/s]363it [02:06,  2.84it/s]364it [02:07,  2.96it/s]365it [02:07,  2.74it/s]366it [02:07,  2.94it/s]367it [02:08,  2.88it/s]368it [02:08,  3.06it/s]369it [02:08,  2.88it/s]370it [02:09,  3.11it/s]371it [02:09,  2.92it/s]372it [02:09,  3.07it/s]373it [02:10,  2.92it/s]374it [02:10,  2.97it/s]375it [02:10,  2.92it/s]376it [02:11,  3.07it/s]377it [02:11,  2.84it/s]378it [02:11,  2.94it/s]379it [02:12,  2.80it/s]
-Training progress @ Epoch: 1, Iteration: 380
-
-Generator loss: 842.0279083251953
-Generator consistency loss: 11996.35
-Discriminator loss: 1.1274050801992417
-Discriminator real accuracy: 0.29165977276861665
-Discriminator fake accuracy: 0.13498714081943036
-
-
-380it [02:12,  3.02it/s]381it [02:13,  2.70it/s]382it [02:13,  2.95it/s]383it [02:13,  2.77it/s]384it [02:14,  2.88it/s]385it [02:14,  2.85it/s]
+100it [01:06,  1.71it/s]101it [01:07,  1.60it/s]102it [01:08,  1.69it/s]103it [01:08,  1.65it/s]104it [01:09,  1.73it/s]105it [01:09,  1.57it/s]106it [01:10,  1.65it/s]107it [01:11,  1.57it/s]108it [01:11,  1.71it/s]109it [01:12,  1.62it/s]110it [01:12,  1.73it/s]111it [01:13,  1.61it/s]112it [01:14,  1.66it/s]113it [01:14,  1.63it/s]114it [01:15,  1.73it/s]
