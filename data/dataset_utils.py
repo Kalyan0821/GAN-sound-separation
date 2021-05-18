@@ -59,7 +59,7 @@ def generate_spectrogram_magphase(audio, stft_frame, stft_hop, with_phase=True):
     spectro_mag = np.expand_dims(spectro_mag, axis=0)
     if with_phase:
         spectro_phase = np.expand_dims(np.angle(spectro_phase), axis=0)
-        return spectro_mag, spectro_phase
+        return spectro_mag, spectro_phase  # 1 x F x T
     else:
         return spectro_mag
 

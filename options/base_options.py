@@ -6,15 +6,13 @@ class BaseOptions():
 	def __init__(self):
 		self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-		self.parser.add_argument('--dataset', type=str, default="MUSIC", help='affects how data is loaded')
+		self.parser.add_argument('--dataset', type=str, default="MUSIC", choices=("MUSIC", "FAIR-Play", "AudioSet"), help='affects how data is loaded')
 		self.parser.add_argument('--all_paths_dir', default='./all_paths')
-		
-		# self.parser.add_argument('--data_path', default='/your_data_root/MUSICDataset/solo/', help='path to frame/audio/detections for testing')
+
 		self.parser.add_argument('--scene_path', default='/your_root/hdf5/ADE.h5', help='path to scene images')
 		self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
-
 		self.parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
-		self.parser.add_argument('--name', type=str, default='audioVisual', help='name of the experiment. It decides where to store models')
+		self.parser.add_argument('--experiment_id', type=str, help='name of the experiment. It decides where to store models')
 		self.parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
 		self.parser.add_argument('--nThreads', default=16, type=int, help='# threads for loading data')
 		self.parser.add_argument('--seed', default=0, type=int, help='random seed')
@@ -35,6 +33,11 @@ class BaseOptions():
 		if len(self.opt.gpu_ids) > 0:
 			torch.cuda.set_device(self.opt.gpu_ids[0])
 
+		if self.opt.with_additional_scene_image:
+			# 15 non-background classes + 1 random scene class
+			# desired_indices: -1=background, [0, 14]=non-background, 15=random-scene
+			opt.number_of_classes = opt.number_of_classes + 1   
+
 		self.save()
 		return self.opt
 
@@ -48,7 +51,7 @@ class BaseOptions():
 		print('-------------- End ----------------')
 
 		# Save options to disk
-		experiment_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)
+		experiment_dir = os.path.join(self.opt.checkpoints_dir, self.opt.experiment_id)
 		if not os.path.isdir(experiment_dir):
 			os.makedirs(experiment_dir)
 

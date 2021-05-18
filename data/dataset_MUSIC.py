@@ -93,7 +93,7 @@ class MUSICDataset(Dataset):
 
 	def __len__(self):  # return number of examples (training/validation)
 		if self.opt.mode == 'train':
-			return self.opt.batchSize * self.opt.num_batch  # number of training examples (default: 30000*32)
+			return self.opt.batchSize * self.opt.num_batch  # number of training examples (default: 32*30000)
 		elif self.opt.mode == 'val':
 			return self.opt.batchSize * self.opt.validation_batches  # number of validation examples (default: 10*32)
 
@@ -104,8 +104,8 @@ class MUSICDataset(Dataset):
 		ground_truth_labels = get_ground_truth_labels_MUSIC(video)		
 
 		clip_det_path = random.choice(self.detection_dic[video])  # randomly sample 1 clip from the video
-		clip_det_bbs = sample_object_detections(np.load(clip_det_path))  # C x 7 array (C discovered classes in the clip)
-		detected_labels_idx = clip_det_bbs[:, 1].astype(int)  # all C detected class indices
+		clip_det_bbs = sample_object_detections(np.load(clip_det_path))  # B x 7 array (B discovered classes in the clip)
+		detected_labels_idx = clip_det_bbs[:, 1].astype(int)  # all B detected class indices
 		assert clip_det_bbs.shape[0] != 0  
 		assert 0 not in clip_det_bbs[:, 1]  # Make sure __background__ is not a detected class
 
@@ -145,7 +145,7 @@ class MUSICDataset(Dataset):
 				detected_labels_idx = [detected_labels_idx[1]]
 
 			else:  # No detected label matches with ground truth
-				print("Could not match detected (2) and true labels (1)")
+				# print("Could not match detected (2) and true labels (1)")
 				music_labels_str = ground_truth_labels
 				detected_labels_idx = [random.choice(detected_labels_idx)]  # Pick one at random
 
@@ -159,7 +159,7 @@ class MUSICDataset(Dataset):
 				music_labels_str = [ground_truth_labels[1]]
 
 			else:
-				print("Could not match detected (1) and true labels (2)")
+				# print("Could not match detected (1) and true labels (2)")
 				music_labels_str = [random.choice(ground_truth_labels)]
 
 
@@ -176,13 +176,10 @@ class MUSICDataset(Dataset):
 				music_labels_str = ground_truth_labels[::-1]
 
 			else:
-				print("Could not match detected (2) and true labels (2)")
+				# print("Could not match detected (2) and true labels (2)")
 				music_labels_str = ground_truth_labels[::random.choice([1, -1])]
 
-
-		# print(music_labels_str, detected_labels_idx)
 		assert len(music_labels_str) == len(detected_labels_idx)
-
 
 		### RANDOM SOLOS ###
 		for music_label in music_labels_str:
@@ -195,8 +192,8 @@ class MUSICDataset(Dataset):
 			solos_audio_mag.append(torch.FloatTensor(clean_audio_mag).unsqueeze(0))
 			solos_audio_phase.append(torch.FloatTensor(clean_audio_phase).unsqueeze(0))		
 
-			clean_detection_bbs = sample_object_detections(np.load(clean_detection_path))  # C x 7 array
-			clean_detected_labels_idx = clean_detection_bbs[:, 1].astype(int)  # all C detected class indices
+			clean_detection_bbs = sample_object_detections(np.load(clean_detection_path))  # B x 7 array
+			clean_detected_labels_idx = clean_detection_bbs[:, 1].astype(int)  # all B detected class indices
 			assert clean_detection_bbs.shape[0] != 0
 			assert 0 not in clean_detection_bbs[:, 1]
 
@@ -206,7 +203,7 @@ class MUSICDataset(Dataset):
 				elif music_label == self.detector_to_MUSIC_label.get(self.detector_labels[clean_detected_labels_idx[1]]):
 					clean_detected_labels_idx = [clean_detected_labels_idx[1]]
 				else:
-					print("SOLOS: Could not match detected (2) and true labels (1)")
+					# print("SOLOS: Could not match detected (2) and true labels (1)")
 					clean_detected_labels_idx = [random.choice(clean_detected_labels_idx)]
 
 			for j in range(clean_detection_bbs.shape[0]):
@@ -221,7 +218,7 @@ class MUSICDataset(Dataset):
 
 
 		### CURRENT CLIP ###
-		for i in range(clip_det_bbs.shape[0]):  # iterate over the C BB-images chosen from the clip
+		for i in range(clip_det_bbs.shape[0]):  # iterate over the B BB-images chosen from the clip
 
 			if clip_det_bbs[i, 1].astype(int) not in detected_labels_idx:  # don't consider wrong detections
 				continue 
@@ -252,36 +249,36 @@ class MUSICDataset(Dataset):
 			if(self.opt.enable_data_augmentation and self.opt.mode == 'train'):
 				scene_image = augment_image(scene_image)
 			objects_visuals.append(self.vision_transform(scene_image).unsqueeze(0))
-			objects_labels.append(self.opt.number_of_classes - 1)  ################### Potential mistake: should be 15, NOT 15-1=14
+			objects_labels.append(self.opt.number_of_classes - 1)
 			objects_audio_mag.append(torch.FloatTensor(audio_mag).unsqueeze(0))
 			objects_audio_phase.append(torch.FloatTensor(audio_phase).unsqueeze(0))
 			objects_ids.append(clip_id)
 
 	
-		# stack (assume C discovered classes in the clip)
-		visuals = np.vstack(objects_visuals)  # all C croppped out BB-images for the clip
-		audio_mags = np.vstack(objects_audio_mag)  # all C overall audio spectograms (repeated for all C BB-images)
+		# stack (assume B discovered classes in the clip)
+		visuals = np.vstack(objects_visuals)  # all B croppped out BB-images for the clip
+		audio_mags = np.vstack(objects_audio_mag)  # overall audio spectograms (repeated for all B BB-images)
 		audio_phases = np.vstack(objects_audio_phase)
-		labels = np.vstack(objects_labels)  # all C labels in the clip, in [-1, 15] (-1: background, 15: random scene)
-		clip_ids = np.vstack(objects_ids)  # all C clip ids (repeated for all BB-images)
-		solo_audio_mags = np.vstack(solos_audio_mag)  # all C randomly sampled, solo audio spectograms 
+		labels = np.vstack(objects_labels)  # all B labels in the clip, in [-1, 15] (-1: background, 15: random scene)
+		clip_ids = np.vstack(objects_ids)  # all B clip ids (repeated for all BB-images)
+		solo_audio_mags = np.vstack(solos_audio_mag)  # all B randomly sampled, solo audio spectograms 
 		solo_audio_phases = np.vstack(solos_audio_phase)
 		solo_visuals = np.vstack(solos_visuals)
 
 
 		# Return a dict for each training/validation "example" (index)
 		data = {
-			"labels": labels,
-			"audio_mags": audio_mags,
-			"solo_audio_mags": solo_audio_mags,
-			"vids": clip_ids,
-			"visuals": visuals,
-			"solo_visuals": solo_visuals
+			"labels": labels,  # B x 1
+			"vids": clip_ids,  # B x 1
+			"audio_mags": audio_mags,  # B x 1 x F x T (F=512, T=256)
+			"solo_audio_mags": solo_audio_mags,  # B x 1 x F x T
+			"visuals": visuals,  # B x 3 x n x n (n=224)
+			"solo_visuals": solo_visuals  # B x 3 x n x n
 			}
 
 		if self.opt.mode in ['val', 'test']:  # for quantitative evaluation, include phase spectograms as well
-			data['audio_phases'] = audio_phases
-			data['solo_audio_phases'] = solo_audio_phases
+			data['audio_phases'] = audio_phases  # B x 1 x F x T
+			data['solo_audio_phases'] = solo_audio_phases  # B x 1 x F x T
 
 		return data
 

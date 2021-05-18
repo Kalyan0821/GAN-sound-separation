@@ -4,7 +4,6 @@ from .dataset_utils import object_collate
 
 def create_dataloader(opt):
 	# create the dataset
-	assert opt.dataset in ["MUSIC", "FAIR-Play", "AudioSet"]
 
 	if opt.dataset == "MUSIC":
 		dataset = MUSICDataset(opt)
