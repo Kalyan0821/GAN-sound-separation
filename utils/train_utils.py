@@ -7,7 +7,7 @@ def create_optimizer(nets, mode, opt):
 						{"params": gen_unet.parameters(), "lr": opt.lr_unet}]
 	elif mode == "disc":
 		param_groups = [{"params": net_visual.parameters(), "lr": opt.lr_visual},
-						{"params": disc_encoder.parameters(), "lr": opt.lr_classifier},
+						{"params": disc_encoder.parameters(), "lr": opt.lr_unet},
 						{"params": disc_classifier.parameters(), "lr": opt.lr_classifier}]
 
 	if opt.optimizer == "sgd":

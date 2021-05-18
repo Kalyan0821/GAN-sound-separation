@@ -7,17 +7,16 @@ class BaseOptions():
 		self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 		self.parser.add_argument('--dataset', type=str, default="MUSIC", choices=("MUSIC", "FAIR-Play", "AudioSet"), help='affects how data is loaded')
-		self.parser.add_argument('--all_paths_dir', default='./all_paths')
+		self.parser.add_argument('--experiment_id', type=str, help='name of the experiment. It decides where to store models')
 
-		self.parser.add_argument('--scene_path', default='/your_root/hdf5/ADE.h5', help='path to scene images')
+		self.parser.add_argument('--all_paths_dir', default='./all_paths')
+		# self.parser.add_argument('--scene_path', default='/your_root/hdf5/ADE.h5', help='path to scene images')
 		self.parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
 		self.parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
-		self.parser.add_argument('--experiment_id', type=str, help='name of the experiment. It decides where to store models')
 		self.parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
 		self.parser.add_argument('--nThreads', default=16, type=int, help='# threads for loading data')
 		self.parser.add_argument('--seed', default=0, type=int, help='random seed')
 
-		# audio arguments
 		self.parser.add_argument('--audio_window', default=65535, type=int, help='audio segment length (# samples)')
 		self.parser.add_argument('--audio_sampling_rate', default=11025, type=int, help='audio sampling rate')
 		self.parser.add_argument('--stft_frame', default=1022, type=int, help="stft frame length")

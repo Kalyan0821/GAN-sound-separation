@@ -11,7 +11,7 @@ from utils.train_utils import create_optimizer
 from utils.utils import resample_logscale
 
 
-def consistency_loss(predicted_masks, clip_ids, regression_loss):
+def consistency_loss(predicted_masks, clip_ids, regression_loss, opt):
 	""" predicted_masks: B x 1 x F x T
 		clip_ids: B """
 
@@ -25,11 +25,23 @@ def consistency_loss(predicted_masks, clip_ids, regression_loss):
 		predicted_mask_sums[clip_id] += predicted_masks[i]  # C x F x T
 
 	loss = torch.tensor(0., requires_grad=True)
-	for clip_id in clip_ids:
-		loss += regression_loss(predicted_mask_sums[clip_id], torch.ones(C, F, T))
-	loss /= B
 
+	if opt.mask_loss_type == "BCE":
+		for clip_id in clip_ids:
+            predicted_mask_sums[clip_id] = torch.clamp(predicted_mask_sums[clip_id], min=0, max=1)
+			loss += regression_loss(predicted_mask_sums[clip_id], torch.ones(C, F, T))
+
+	else:
+		for clip_id in clip_ids:
+			loss += regression_loss(predicted_mask_sums[clip_id], torch.ones(C, F, T))
+
+	loss /= B
 	return loss
+
+
+predicted_mask_list[vid_index_dic[vids[i]]] = torch.clamp(predicted_mask_list[vid_index_dic[vids[i]]], 0, 1)
+
+
 
 
 def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
@@ -100,7 +112,7 @@ def gen_step(audio_mags, visuals, clip_ids,
 
 	# Loss components
 	gen_loss_classification = classification_loss(fake_preds, fake_targets)
-	gen_loss_consistency = consistency_loss(predicted_masks, clip_ids, regression_loss)
+	gen_loss_consistency = consistency_loss(predicted_masks, clip_ids, regression_loss, opt)
 
 	# Total loss
 	gen_loss = gen_loss_classification + gen_loss_consistency*opt.consistency_loss_weight
@@ -119,11 +131,11 @@ opt.device = torch.device("cuda")
 dataloader_train = create_dataloader(opt)
 print(f"Train batches: {len(dataloader_train)}")
 
-if opt.validation_on:
-	opt.mode = "val"  # set temporalily
-	dataloader_val = create_dataloader(opt)
-	print(f"Validation batches: {len(dataloader_val)}")
-	opt.mode = "train"
+# if opt.validation_on:
+# 	opt.mode = "val"  # set temporalily
+# 	dataloader_val = create_dataloader(opt)
+# 	print(f"Validation batches: {len(dataloader_val)}")
+# 	opt.mode = "train"
 
 # Tensorboard
 if opt.tensorboard:
