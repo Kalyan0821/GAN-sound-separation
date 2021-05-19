@@ -5,5 +5,6 @@ __pycache__/
 # PyTorch models
 *.pth
 
-# Local runs
+# Local runs and logs
+log.txt
 runs/
