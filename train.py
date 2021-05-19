@@ -5,6 +5,7 @@ from tqdm import tqdm
 import sys
 import time
 import numpy as np
+import os
 from options.train_options import TrainOptions
 from data.dataloader import create_dataloader
 from models import components
@@ -75,8 +76,9 @@ def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 	disc_optimizer.step()
 
 	with torch.no_grad():
-		real_acc = torch.sum(torch.round(real_preds)==1)/real_preds.shape[0]
-		fake_acc = torch.sum(torch.round(fake_preds)==0)/fake_preds.shape[0] 
+		sigmoid = nn.Sigmoid()
+		real_acc = torch.sum(torch.round(sigmoid(real_preds))==1)/real_preds.shape[0]  # apply sigmoid since model outputs logits, not probabilities
+		fake_acc = torch.sum(torch.round(sigmoid(fake_preds))==0)/fake_preds.shape[0] 
 
 
 	return disc_loss.item(), real_acc.item(), fake_acc.item()
@@ -266,7 +268,7 @@ for epoch in range(opt.num_epochs):
 
 	print(f"Saving latest model @ Epoch: {epoch}, Iteration: {batch_number}\n")
 	torch.save(net_visual.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"visual_epoch{epoch}.pth"))
-	torch.save(gen_unet.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"unet_epoch{epoch}.pth"))
+	torch.save(gen_unet.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"gen_unet_epoch{epoch}.pth"))
 	torch.save(disc_encoder.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_encoder_epoch{epoch}.pth"))
 	torch.save(disc_classifier.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_classifier_epoch{epoch}.pth"))
 
