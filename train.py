@@ -75,13 +75,13 @@ def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 	disc_loss.backward()
 	disc_optimizer.step()
 
+	# Get confidence scores
 	with torch.no_grad():
 		sigmoid = nn.Sigmoid()
-		real_acc = torch.sum(torch.round(sigmoid(real_preds))==1)/real_preds.shape[0]  # apply sigmoid since model outputs logits, not probabilities
-		fake_acc = torch.sum(torch.round(sigmoid(fake_preds))==0)/fake_preds.shape[0] 
+		real_conf = torch.sum(sigmoid(real_preds))/real_preds.shape[0]  # apply sigmoid since model outputs logits, not probabilities
+		fake_conf = 1 - torch.sum(sigmoid(fake_preds))/fake_preds.shape[0] 		
 
-
-	return disc_loss.item(), real_acc.item(), fake_acc.item()
+	return disc_loss.item(), real_conf.item(), fake_conf.item()
 
 
 def gen_step(audio_mags, visuals, clip_ids,
@@ -183,8 +183,8 @@ if opt.mask_loss_type == "BCE":
 
 gen_losses = []
 disc_losses = []
-real_accs = []
-fake_accs = []
+real_confs = []
+fake_confs = []
 gen_losses_consistency = []
 
 # Train
@@ -214,13 +214,13 @@ for epoch in range(opt.num_epochs):
 
 		if batch_number % (opt.num_disc_updates+1) != 0:
 			# discriminator update (frequent in wgan)
-			batch_disc_loss, batch_real_acc, batch_fake_acc = disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
-																		net_visual, gen_unet, disc_encoder, disc_classifier,
-																		gen_optimizer, disc_optimizer,
-																		classification_loss, opt)
+			batch_disc_loss, batch_real_conf, batch_fake_conf = disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
+																		  net_visual, gen_unet, disc_encoder, disc_classifier,
+																		  gen_optimizer, disc_optimizer,
+																		  classification_loss, opt)
 			disc_losses.append(batch_disc_loss)
-			real_accs.append(batch_real_acc)
-			fake_accs.append(batch_fake_acc)
+			real_confs.append(batch_real_conf)
+			fake_confs.append(batch_fake_conf)
 
 		elif batch_number % (opt.num_disc_updates+1) == 0:
 			# generator update (infrequent in wgan)
@@ -237,27 +237,27 @@ for epoch in range(opt.num_epochs):
 
 			avg_gen_loss = np.mean(gen_losses)
 			avg_disc_loss = np.mean(disc_losses)
-			avg_real_acc = np.mean(real_accs)
-			avg_fake_acc = np.mean(fake_accs)
+			avg_real_conf = np.mean(real_confs)
+			avg_fake_conf = np.mean(fake_confs)
 			avg_gen_loss_consistency = np.mean(gen_losses_consistency)
 			if opt.tensorboard:
 				# Log
 				writer.add_scalar(tag="train_losses/gen_loss", scalar_value=avg_gen_loss, global_step=batch_number, display_name="gen_loss")
 				writer.add_scalar(tag="train_losses/disc_loss", scalar_value=avg_disc_loss, global_step=batch_number, display_name="disc_loss")
-				writer.add_scalar(tag="train_losses/disc_real_acc", scalar_value=avg_real_acc, global_step=batch_number, display_name="disc_real_acc")
-				writer.add_scalar(tag="train_losses/disc_fake_acc", scalar_value=avg_fake_acc, global_step=batch_number, display_name="disc_fake_acc")
+				writer.add_scalar(tag="train_losses/disc_real_conf", scalar_value=avg_real_conf, global_step=batch_number, display_name="disc_real_conf")
+				writer.add_scalar(tag="train_losses/disc_fake_conf", scalar_value=avg_fake_conf, global_step=batch_number, display_name="disc_fake_conf")
 				writer.add_scalar(tag="train_losses/gen_loss_consistency", scalar_value=avg_gen_loss_consistency, global_step=batch_number, display_name="gen_loss_consistency")
 			# Print
 			print(f"\nTraining progress @ Epoch: {epoch+1}, Iteration: {batch_number}\n")
 			print(f"Generator loss: {avg_gen_loss}")
 			print(f"Generator consistency loss: {avg_gen_loss_consistency}")
 			print(f"Discriminator loss: {avg_disc_loss}")
-			print(f"Discriminator real accuracy: {avg_real_acc}")
-			print(f"Discriminator fake accuracy: {avg_fake_acc}\n\n")
+			print(f"Discriminator real confidence: {avg_real_conf}")
+			print(f"Discriminator fake confidence: {avg_fake_conf}\n\n")
 			# Reset
 			disc_losses = []
-			real_accs = []
-			fake_accs = []
+			real_confs = []
+			fake_confs = []
 			gen_losses = []
 			gen_losses_consistency = []
 
@@ -266,11 +266,11 @@ for epoch in range(opt.num_epochs):
 		# 	# PRINT
 		# 	# SAVE best val model yet
 
-	print(f"Saving latest model @ Epoch: {epoch}, Iteration: {batch_number}\n")
-	torch.save(net_visual.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"visual_epoch{epoch}.pth"))
-	torch.save(gen_unet.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"gen_unet_epoch{epoch}.pth"))
-	torch.save(disc_encoder.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_encoder_epoch{epoch}.pth"))
-	torch.save(disc_classifier.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_classifier_epoch{epoch}.pth"))
+	print(f"Saving latest model @ Epoch: {epoch+1}, Iteration: {batch_number}\n")
+	torch.save(net_visual.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"visual_epoch{epoch+1}.pth"))
+	torch.save(gen_unet.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"gen_unet_epoch{epoch+1}.pth"))
+	torch.save(disc_encoder.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_encoder_epoch{epoch+1}.pth"))
+	torch.save(disc_classifier.state_dict(), os.path.join(opt.checkpoints_dir, opt.experiment_id, f"disc_classifier_epoch{epoch+1}.pth"))
 
 
 

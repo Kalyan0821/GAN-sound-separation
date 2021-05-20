@@ -7,4 +7,5 @@ __pycache__/
 
 # Local runs and logs
 log.txt
+logs/
 runs/
