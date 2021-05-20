@@ -3,7 +3,6 @@ __pycache__/
 *.py[cod]
 
 # PyTorch models
-checkpoints/
 *.pth
 
 # Local runs and logs
