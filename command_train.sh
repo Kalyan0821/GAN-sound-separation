@@ -6,8 +6,8 @@ python train.py \
    	   --num_epochs 100 \
 	   --batchSize 16 \
 	   --num_batch 30000 \
+  	   --softmax_constraint False \
    	   --consistency_loss_weight 20 \
-   	   --softmax_constraint False \
    	   --mask_loss_type L1 \
 	   --num_disc_updates 1 \
 	   --nThreads 16 \
