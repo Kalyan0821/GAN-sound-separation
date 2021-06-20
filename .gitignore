@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+**/__pycache__/
 *.py[cod]
 
 # PyTorch models
@@ -9,3 +9,7 @@ __pycache__/
 log.txt
 logs/
 runs/
+results/
+
+# vscode
+.vscode
