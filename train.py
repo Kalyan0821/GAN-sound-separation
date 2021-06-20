@@ -192,23 +192,18 @@ disc_optimizer = create_optimizer(nets=nets, mode="disc", opt=opt)
 # Loss functions
 classification_loss = nn.BCEWithLogitsLoss()
 
-if opt.softmax_constraint:
-	regression_loss = None  # Impose SoftMax constraint to make masks sum to 1
-else:
-	if opt.mask_loss_type == "L1":
-		regression_loss = nn.L1Loss()
-	elif opt.mask_loss_type == "L2":
-		regression_loss = nn.MSELoss()
-	elif opt.mask_loss_type == "BCE":
-		regression_loss = nn.BCELoss()
-
+if opt.mask_loss_type == "L1":
+	regression_loss = nn.L1Loss()
+elif opt.mask_loss_type == "L2":
+	regression_loss = nn.MSELoss()
+elif opt.mask_loss_type == "BCE":
+	regression_loss = nn.BCELoss()
 
 disc_losses = []
 real_confs = []
 fake_confs = []
 gen_losses_consistency = []
 gen_losses_classification = []
-
 
 # Train
 batch_number = 0
