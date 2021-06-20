@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import librosa
 
 def warpgrid(B, f, T, warp=True):
     x = np.linspace(-1, 1, num=T)
@@ -29,4 +30,7 @@ def resample_logscale(raw_mags, opt, f=256):
     
 
 
-
+def istft_reconstruction(mag, phase, hop_length=256, length=65535):
+    spec = mag.astype(np.complex) * np.exp(1j*phase)
+    wav = librosa.istft(spec, hop_length=hop_length, length=length)
+    return np.clip(wav, -1., 1.)
