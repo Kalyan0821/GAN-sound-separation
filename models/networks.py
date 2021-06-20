@@ -10,7 +10,7 @@ def unet_conv(input_channels, output_channels, norm_layer=nn.BatchNorm2d):
     downrelu = nn.LeakyReLU(0.2, True)
     return nn.Sequential(*[downconv, downnorm, downrelu])
 
-def unet_upconv(input_channels, output_channels, outermost=False, norm_layer=nn.BatchNorm2d):
+def unet_upconv(input_channels, output_channels, outermost=False, norm_layer=nn.BatchNorm2d, no_sigmoid=True):
     """ c_in x n x n => c_out x 2n x 2n """
 
     upconv = nn.ConvTranspose2d(input_channels, output_channels, kernel_size=4, stride=2, padding=1)
@@ -19,7 +19,10 @@ def unet_upconv(input_channels, output_channels, outermost=False, norm_layer=nn.
     if not outermost:
         return nn.Sequential(*[upconv, upnorm, uprelu])
     else:
-        return nn.Sequential(*[upconv, nn.Sigmoid()])
+        if no_sigmoid:
+            return nn.Sequential(*[upconv])  # No sigmoid
+        else:
+            return nn.Sequential(*[upconv, nn.Sigmoid()])  # Apply sigmoid
         
 def create_conv(input_channels, output_channels, kernel, paddings, batch_norm=True, Relu=True, stride=1):
     """ Regular Conv2D layer with BatchNorm/ReLU optionally """
@@ -92,7 +95,7 @@ class Resnet18(nn.Module):
         return x
 
 class AudioVisual7layerUNet(nn.Module):
-    def __init__(self, ngf=64, input_channels=1, output_channels=1, with_decoder=True):
+    def __init__(self, ngf=64, input_channels=1, output_channels=1, with_decoder=True, no_sigmoid=True):
         super().__init__()
         self.with_decoder = with_decoder
 
@@ -112,7 +115,9 @@ class AudioVisual7layerUNet(nn.Module):
             self.audionet_upconvlayer4 = unet_upconv(ngf * 16, ngf *4)
             self.audionet_upconvlayer5 = unet_upconv(ngf * 8, ngf * 2)
             self.audionet_upconvlayer6 = unet_upconv(ngf * 4, ngf)
-            self.audionet_upconvlayer7 = unet_upconv(ngf * 2, output_channels, outermost=True)  # use sigmoid to bound the mask (outermost layer)
+            self.audionet_upconvlayer7 = unet_upconv(ngf * 2, output_channels,
+                                                     outermost=True,
+                                                     no_sigmoid=no_sigmoid)
 
     def forward(self, x, visual_feat):
         """ x: 1 x F x T
@@ -168,7 +173,9 @@ class AudioVisual5layerUNet(nn.Module):
             self.audionet_upconvlayer2 = unet_upconv(ngf * 16, ngf * 4)
             self.audionet_upconvlayer3 = unet_upconv(ngf * 8, ngf * 2)
             self.audionet_upconvlayer4 = unet_upconv(ngf * 4, ngf)
-            self.audionet_upconvlayer5 = unet_upconv(ngf * 2, output_channels, True)  # use sigmoid to bound the mask (outermost layer)
+            self.audionet_upconvlayer5 = unet_upconv(ngf * 2, output_channels,
+                                                     outermost=True,
+                                                     no_sigmoid=no_sigmoid)
 
     def forward(self, x, visual_feat):
         """ x: 1 x F x T

@@ -17,15 +17,15 @@ def build_visual(pool_type="avgpool", fc_out=512, weights='', pretrained=True):
     return net
 
 
-def build_unet(unet_num_layers=7, ngf=64, input_channels=1, output_channels=1, with_decoder=True, weights=''):
+def build_unet(unet_num_layers=7, ngf=64, input_channels=1, output_channels=1, with_decoder=True, weights='', no_sigmoid=False):
     if unet_num_layers == 7:
-        # 1xFxT, 512x1x1 => 1xFxT
-        #                => 1024x(F/128)x(T/128)
-        net = AudioVisual7layerUNet(ngf=ngf, input_channels=input_channels, output_channels=output_channels, with_decoder=with_decoder)
+        # 1xFxT, 512x1x1 => 1xFxT with decoder
+        #                => 1024x(F/128)x(T/128) without decoder
+        net = AudioVisual7layerUNet(ngf=ngf, input_channels=input_channels, output_channels=output_channels, with_decoder=with_decoder, no_sigmoid=no_sigmoid)
     elif unet_num_layers == 5:
         # 1xFxT, 512x1x1 => 1xFxT
         #                => 1024x(F/32)x(T/32)
-        net = AudioVisual5layerUNet(ngf=ngf, input_channels=input_channels, output_channels=output_channels, with_decoder=with_decoder)
+        net = AudioVisual5layerUNet(ngf=ngf, input_channels=input_channels, output_channels=output_channels, with_decoder=with_decoder, no_sigmoid=no_sigmoid)
 
     net.apply(weights_init)
 

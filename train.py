@@ -9,7 +9,7 @@ import os
 from options.train_options import TrainOptions
 from data.dataloader import create_dataloader
 from models import components
-from utils.train_utils import create_optimizer
+from utils.train_utils import create_optimizer, softmax_normalization
 from utils.utils import resample_logscale
 
 
@@ -18,7 +18,6 @@ def consistency_loss(predicted_masks, clip_ids, regression_loss, opt):
 		clip_ids: B """
 
 	predicted_mask_sums = dict()
-
 	B, C, F, T = predicted_masks.shape
 
 	for clip_id in clip_ids:
@@ -41,7 +40,7 @@ def consistency_loss(predicted_masks, clip_ids, regression_loss, opt):
 	return loss
 
 
-def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
+def disc_step(audio_mags, visuals, clip_ids, solo_audio_mags, solo_visuals,
 			  net_visual, gen_unet, disc_encoder, disc_classifier,
 			  gen_optimizer, disc_optimizer,
 			  classification_loss, opt):
@@ -55,7 +54,12 @@ def disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
 	solo_visual_features = net_visual(solo_visuals)
 
 	# Get separated audios
-	predicted_masks = gen_unet(log_audio_mags, visual_features)
+	if opt.softmax_constraint:
+		raw_predicted_masks = gen_unet(log_audio_mags, visual_features)
+		predicted_masks = softmax_normalization(raw_predicted_masks, clip_ids)
+	else:
+		predicted_masks = gen_unet(log_audio_mags, visual_features)
+
 	separated_audio_mags = predicted_masks * audio_mags
 	log_separated_audio_mags = torch.log(separated_audio_mags + 1e-10)
 
@@ -97,7 +101,13 @@ def gen_step(audio_mags, visuals, clip_ids,
 	visual_features = net_visual(visuals)
 
 	# Get separated audios
-	predicted_masks = gen_unet(log_audio_mags, visual_features)
+	if opt.softmax_constraint:
+		raw_predicted_masks = gen_unet(log_audio_mags, visual_features)
+		predicted_masks = softmax_normalization(raw_predicted_masks, clip_ids)
+	else:
+		predicted_masks = gen_unet(log_audio_mags, visual_features)
+
+
 	separated_audio_mags = predicted_masks * audio_mags
 	log_separated_audio_mags = torch.log(separated_audio_mags + 1e-10)
 
@@ -110,14 +120,20 @@ def gen_step(audio_mags, visuals, clip_ids,
 
 	# Loss components
 	gen_loss_classification = classification_loss(fake_preds, fake_targets)
-	gen_loss_consistency = consistency_loss(predicted_masks, clip_ids, regression_loss, opt)
-
+	gen_loss_consistency = consistency_loss(predicted_masks, clip_ids, regression_loss, opt)  # should be zero with SoftMax constraint
+	
 	# Total loss
-	gen_loss = gen_loss_classification + gen_loss_consistency*opt.consistency_loss_weight
+	if opt.softmax_constraint:
+		gen_loss = gen_loss_classification  # no need to include consistency loss due to SoftMax constraint
+	else:
+		gen_loss = gen_loss_classification + gen_loss_consistency*opt.consistency_loss_weight
+
+
 	gen_loss.backward()
 	gen_optimizer.step()
 
-	return gen_loss.item(), gen_loss_consistency.item()
+	return gen_loss_classification.item(), gen_loss_consistency.item()
+
 
 ########################################################################################
 
@@ -150,7 +166,8 @@ gen_unet = components.build_unet(unet_num_layers=opt.unet_num_layers,
 								 input_channels=opt.unet_input_nc,
 								 output_channels=opt.unet_output_nc,
 								 with_decoder=True,
-								 weights=opt.weights_unet)
+								 weights=opt.weights_unet,
+								 no_sigmoid=opt.softmax_constraint) 
 
 disc_encoder = components.build_unet(unet_num_layers=opt.unet_num_layers,
 									 ngf=opt.unet_ngf,
@@ -174,18 +191,24 @@ disc_optimizer = create_optimizer(nets=nets, mode="disc", opt=opt)
 
 # Loss functions
 classification_loss = nn.BCEWithLogitsLoss()
-if opt.mask_loss_type == "L1":
-	regression_loss = nn.L1Loss(reduction="sum")
-if opt.mask_loss_type == "L2":
-	regression_loss = nn.MSELoss(reduction="sum")
-if opt.mask_loss_type == "BCE":
-	regression_loss = nn.BCELoss(reduction="sum")
 
-gen_losses = []
+if opt.softmax_constraint:
+	regression_loss = None  # Impose SoftMax constraint to make masks sum to 1
+else:
+	if opt.mask_loss_type == "L1":
+		regression_loss = nn.L1Loss()
+	elif opt.mask_loss_type == "L2":
+		regression_loss = nn.MSELoss()
+	elif opt.mask_loss_type == "BCE":
+		regression_loss = nn.BCELoss()
+
+
 disc_losses = []
 real_confs = []
 fake_confs = []
 gen_losses_consistency = []
+gen_losses_classification = []
+
 
 # Train
 batch_number = 0
@@ -212,9 +235,10 @@ for epoch in range(opt.num_epochs):
 		disc_optimizer.zero_grad()
 		gen_optimizer.zero_grad()
 
+
 		if batch_number % (opt.num_disc_updates+1) != 0:
 			# discriminator update (frequent in wgan)
-			batch_disc_loss, batch_real_conf, batch_fake_conf = disc_step(audio_mags, visuals, solo_audio_mags, solo_visuals,
+			batch_disc_loss, batch_real_conf, batch_fake_conf = disc_step(audio_mags, visuals, clip_ids, solo_audio_mags, solo_visuals,
 																		  net_visual, gen_unet, disc_encoder, disc_classifier,
 																		  gen_optimizer, disc_optimizer,
 																		  classification_loss, opt)
@@ -224,32 +248,35 @@ for epoch in range(opt.num_epochs):
 
 		elif batch_number % (opt.num_disc_updates+1) == 0:
 			# generator update (infrequent in wgan)
-			batch_gen_loss, batch_gen_loss_consistency = gen_step(audio_mags, visuals, clip_ids,
+			batch_gen_loss_classification, batch_gen_loss_consistency = gen_step(audio_mags, visuals, clip_ids,
 																  net_visual, gen_unet, disc_encoder, disc_classifier,
 																  gen_optimizer, disc_optimizer,
 																  classification_loss, regression_loss,
 																  opt)
-			gen_losses.append(batch_gen_loss)
+			gen_losses_classification.append(batch_gen_loss_classification)
 			gen_losses_consistency.append(batch_gen_loss_consistency)
 
 
 		if batch_number % opt.display_freq == 0:
 
-			avg_gen_loss = np.mean(gen_losses)
 			avg_disc_loss = np.mean(disc_losses)
 			avg_real_conf = np.mean(real_confs)
 			avg_fake_conf = np.mean(fake_confs)
+			avg_gen_loss_classification = np.mean(gen_losses_classification)
 			avg_gen_loss_consistency = np.mean(gen_losses_consistency)
+
 			if opt.tensorboard:
 				# Log
-				writer.add_scalar(tag="train_losses/gen_loss", scalar_value=avg_gen_loss, global_step=batch_number, display_name="gen_loss")
-				writer.add_scalar(tag="train_losses/disc_loss", scalar_value=avg_disc_loss, global_step=batch_number, display_name="disc_loss")
-				writer.add_scalar(tag="train_losses/disc_real_conf", scalar_value=avg_real_conf, global_step=batch_number, display_name="disc_real_conf")
-				writer.add_scalar(tag="train_losses/disc_fake_conf", scalar_value=avg_fake_conf, global_step=batch_number, display_name="disc_fake_conf")
-				writer.add_scalar(tag="train_losses/gen_loss_consistency", scalar_value=avg_gen_loss_consistency, global_step=batch_number, display_name="gen_loss_consistency")
+				writer.add_scalar(tag="train_losses/disc_loss", scalar_value=avg_disc_loss, global_step=batch_number)
+				writer.add_scalar(tag="train_losses/disc_real_conf", scalar_value=avg_real_conf, global_step=batch_number)
+				writer.add_scalar(tag="train_losses/disc_fake_conf", scalar_value=avg_fake_conf, global_step=batch_number)
+
+				writer.add_scalar(tag="train_losses/gen_loss_classification", scalar_value=avg_gen_loss_classification, global_step=batch_number)
+				writer.add_scalar(tag="train_losses/gen_loss_consistency", scalar_value=avg_gen_loss_consistency, global_step=batch_number)
+
 			# Print
 			print(f"\nTraining progress @ Epoch: {epoch+1}, Iteration: {batch_number}\n")
-			print(f"Generator loss: {avg_gen_loss}")
+			print(f"Generator classification loss: {avg_gen_loss_classification}")
 			print(f"Generator consistency loss: {avg_gen_loss_consistency}")
 			print(f"Discriminator loss: {avg_disc_loss}")
 			print(f"Discriminator real confidence: {avg_real_conf}")
@@ -258,7 +285,7 @@ for epoch in range(opt.num_epochs):
 			disc_losses = []
 			real_confs = []
 			fake_confs = []
-			gen_losses = []
+			gen_losses_classification = []
 			gen_losses_consistency = []
 
 		# if (opt.validation_on) and (batch_number % opt.validation_freq == 0):

@@ -30,8 +30,10 @@ class TrainOptions(BaseOptions):
 		self.parser.add_argument("--unet_input_nc", type=int, default=1, help="input spectrogram number of channels")
 		self.parser.add_argument("--unet_output_nc", type=int, default=1, help="output spectrogram number of channels")
 		self.parser.add_argument("--number_of_classes", default=15, type=int, help="number of instrument classes")
-		self.parser.add_argument("--consistency_loss_weight", default=0.05, type=float, help="weight for consistency loss")
-		self.parser.add_argument("--mask_loss_type", default="L1", type=str, choices=("L1", "L2", "BCE"), help="type of reconstruction loss on mask")
+
+		self.parser.add_argument("--softmax_constraint", type=bool, default=True, help="if True, impose SoftMax constraint. If False, use consistency loss")
+		self.parser.add_argument("--consistency_loss_weight", default=20, type=float, help="weight for consistency loss")
+		self.parser.add_argument("--mask_loss_type", default="L1", type=str, choices=("L1", "L2", "BCE"), help="type of consistency loss on mask")
 		# self.parser.add_argument("--weighted_loss", action="store_true", help="weighted loss")
 		self.parser.add_argument("--logscale_freq", type=bool, default=True, help="whether use log-scale frequency")		
 		self.parser.add_argument("--with_additional_scene_image", action="store_true", help="whether to append an extra scene image")	
