@@ -1,15 +1,15 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
 python train.py \
-	   --experiment_id music_vanilla_d5 \
+	   --experiment_id music_vanilla_softmax_beta9 \
 	   --dataset MUSIC \
    	   --num_epochs 100 \
 	   --batchSize 16 \
 	   --num_batch 30000 \
-  	   --softmax_constraint False \
+  	   --softmax_constraint True \
    	   --consistency_loss_weight 20 \
    	   --mask_loss_type L1 \
-	   --num_disc_updates 5 \
+	   --num_disc_updates 1 \
 	   --nThreads 16 \
 	   --visual_pool conv1x1 \
 	   --classifier_pool maxpool \
@@ -20,9 +20,9 @@ python train.py \
 	   --lr_unet 0.001 \
 	   --lr_classifier 0.001 \
 	   --optimizer adam \
-	   --beta1 0.5 \
+	   --beta1 0.9 \
 	   --weight_decay 0.0001 \
-   	   --tensorboard True |& tee logs/music_vanilla_d5.txt
+   	   --tensorboard True |& tee logs/music_vanilla_softmax_beta9.txt
 
 
 
