@@ -1,7 +1,7 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=3
 
-python train.py \
-	   --experiment_id music_vanilla_d5 \
+python test.py \
+	   --experiment_id music_vanilla_less_consistency \
 	   --dataset MUSIC \
    	   --num_epochs 100 \
 	   --batchSize 16 \
@@ -9,7 +9,7 @@ python train.py \
   	   --softmax_constraint False \
    	   --consistency_loss_weight 20 \
    	   --mask_loss_type L1 \
-	   --num_disc_updates 5 \
+	   --num_disc_updates 1 \
 	   --nThreads 16 \
 	   --visual_pool conv1x1 \
 	   --classifier_pool maxpool \
@@ -22,7 +22,7 @@ python train.py \
 	   --optimizer adam \
 	   --beta1 0.5 \
 	   --weight_decay 0.0001 \
-   	   --tensorboard True |& tee logs/music_vanilla_d5.txt
+   	   --tensorboard True |& tee logs/music_vanilla_less_consistency.txt
 
 
 

@@ -22,24 +22,6 @@ from utils import utils
 
 opt = TrainOptions().parse()
 opt.device = torch.device("cuda")
-opt.num_epochs= 100 
-opt.batchSize =16 
-opt.num_batch =30000 
-opt.consistency_loss_weight =0.07 
-opt.mask_loss_type ='L1'
-opt.num_disc_updates =1 
-opt.nThreads =16 
-opt.visual_pool ='conv1x1'
-opt.classifier_pool ='maxpool'
-opt.unet_num_layers =7
-opt.number_of_classes= 15 
-opt.logscale_freq =True 
-opt.lr_visual =0.0001 
-opt.lr_unet =0.001
-opt.lr_classifier =0.001 
-opt.optimizer ='adam'
-opt.beta1 =0.5 
-opt.weight_decay= 0.0001
 opt.hop_size = 0.05
 
 def clip_audio(audio):
@@ -73,8 +55,8 @@ def get_separated_audio(mag_mix, phase_mix, pred_masks_, opt, log_freq=1):
 ##################
 ## INIT models
 ##################
-opt.weights_visual = './checkpoints/music_vanilla_100/visual_epoch60.pth'
-opt.weights_unet = './checkpoints/music_vanilla_100/gen_unet_epoch60.pth'
+opt.weights_visual = './checkpoints/music_vanilla_less_consistency/visual_epoch7.pth'
+opt.weights_unet = './checkpoints/music_vanilla_less_consistency/gen_unet_epoch7.pth'
 
 # Initialize component networks
 net_visual = components.build_visual(pool_type=opt.visual_pool,
@@ -86,7 +68,8 @@ gen_unet = components.build_unet(unet_num_layers=opt.unet_num_layers,
 								 input_channels=opt.unet_input_nc,
 								 output_channels=opt.unet_output_nc,
 								 with_decoder=True,
-								 weights=opt.weights_unet)
+								 weights=opt.weights_unet,
+								 no_sigmoid=opt.softmax_constraint)
 # Put components on GPU
 net_visual.to(opt.device)
 gen_unet.to(opt.device)
@@ -165,7 +148,7 @@ for vid_id in tqdm(range(num_Videos)):
 	audio, audio_rate = librosa.load(audio_path, sr=opt.audio_sampling_rate)  # load audio of clip at 11025 Hz (default)
 
 	## sliding window decoding
-	audio_length = opt.audio_window#len(audio)
+	audio_length = len(audio)#opt.audio_window#len(audio)
 	num_objects = len(clip_det_bbs)
 	opt_folder = video[video.find('TOP_detection_results')+len('TOP_detection_results')+1:].replace('/','_')
 
@@ -200,6 +183,7 @@ for vid_id in tqdm(range(num_Videos)):
 			#separate for video 1
 			log_audio_mags = torch.log(audio_mags + 1e-10)
 			visual_features = net_visual(objects_visuals.to(opt.device))
+
 			predicted_masks = gen_unet(log_audio_mags, visual_features)
 			
 			reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks, opt, log_freq=1)
@@ -209,20 +193,20 @@ for vid_id in tqdm(range(num_Videos)):
 			sliding_window_start = sliding_window_start + int(opt.hop_size * opt.audio_sampling_rate)
 
 		#deal with the last segment
-		#audio_segment = audio[-samples_per_window:]
-		#audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
-		#audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
-		#audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
-		#audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
+		audio_segment = audio[-samples_per_window:]
+		audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
+		audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
+		audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
+		audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
 
 		#separate for video 1
-		#log_audio_mags = torch.log(audio_mags + 1e-10)
-		#visual_features = net_visual(objects_visuals.to(opt.device))
-		#predicted_masks = gen_unet(log_audio_mags, visual_features)
+		log_audio_mags = torch.log(audio_mags + 1e-10)
+		visual_features = net_visual(objects_visuals.to(opt.device))
+		predicted_masks = gen_unet(log_audio_mags, visual_features)
 
-		#reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks, opt, log_freq=1)
-		#sep_audio[-samples_per_window:] = sep_audio[-samples_per_window:] + reconstructed_signal
-		#overlap_count[-samples_per_window:] = overlap_count[-samples_per_window:] + 1
+		reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks, opt, log_freq=1)
+		sep_audio[-samples_per_window:] = sep_audio[-samples_per_window:] + reconstructed_signal
+		overlap_count[-samples_per_window:] = overlap_count[-samples_per_window:] + 1
 
 		#divide the aggregated predicted audio by the overlap count
 		separation1 = clip_audio(np.divide(sep_audio, overlap_count) * 2)
