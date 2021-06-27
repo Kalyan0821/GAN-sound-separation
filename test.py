@@ -17,13 +17,17 @@ from data.dataset_utils import get_vid_path_MUSIC, get_audio_path_MUSIC, get_fra
 from data.dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
 from data.dataloader import create_dataloader
 from models import components
-from options.train_options import TrainOptions
+from options.test_options import TestOptions
 from utils import utils
+from utils.train_utils import softmax_normalization
 
-opt = TrainOptions().parse()
+opt = TestOptions().parse()
 opt.device = torch.device("cuda")
 opt.hop_size = 0.05
 
+output_dir = os.path.join('./results/', opt.experiment_id)
+if not os.path.isdir(output_dir):	os.mkdir(output_dir)
+print(f'saving results to : {output_dir}')
 def clip_audio(audio):
     audio[audio > 1.] = 1.
     audio[audio < -1.] = -1.
@@ -55,8 +59,9 @@ def get_separated_audio(mag_mix, phase_mix, pred_masks_, opt, log_freq=1):
 ##################
 ## INIT models
 ##################
-opt.weights_visual = './checkpoints/music_vanilla_less_consistency/visual_epoch7.pth'
-opt.weights_unet = './checkpoints/music_vanilla_less_consistency/gen_unet_epoch7.pth'
+opt.weights_visual = f'./checkpoints/{opt.experiment_id}/visual_epoch{opt.epoch}.pth'
+opt.weights_unet = f'./checkpoints/{opt.experiment_id}/gen_unet_epoch{opt.epoch}.pth'
+print(f'Loading weights from : \n\t{opt.weights_visual}\n\t{opt.weights_unet}')
 
 # Initialize component networks
 net_visual = components.build_visual(pool_type=opt.visual_pool,
@@ -73,6 +78,7 @@ gen_unet = components.build_unet(unet_num_layers=opt.unet_num_layers,
 # Put components on GPU
 net_visual.to(opt.device)
 gen_unet.to(opt.device)
+softmax = torch.nn.Softmax(dim=0)
 
 
 detector_labels = ['__background__',
@@ -94,7 +100,6 @@ detector_to_MUSIC_label = {
                     "Violin": "violin",
                     "Piano": "xylophone"
                     }
-
 ################
 ## load data
 ##############
@@ -151,75 +156,106 @@ for vid_id in tqdm(range(num_Videos)):
 	audio_length = len(audio)#opt.audio_window#len(audio)
 	num_objects = len(clip_det_bbs)
 	opt_folder = video[video.find('TOP_detection_results')+len('TOP_detection_results')+1:].replace('/','_')
-
-	#print(num_objects)
-	for i in range(num_objects):
-		# get path of the single randomly sampled frame of the ith BB-image
-		frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")			
-		# Crop out the BB image from the sampled frame for each discovered class in the clip
-		object_image = Image.open(frame_path).convert('RGB').crop(
-			(clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i,-1]))
-
-		# reshape and normalize each BB image
-		objects_visuals = vision_transform(object_image).unsqueeze(0)
-
-		label = clip_det_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
-		objects_labels= (label)
 		
-		#perform separation over the whole audio using a sliding window approach
-		overlap_count = np.zeros((audio_length))
-		sep_audio = np.zeros((audio_length))
-		sliding_window_start = 0
-		data = {}
-		samples_per_window = opt.audio_window
-		while sliding_window_start + samples_per_window < audio_length:
-			sliding_window_end = sliding_window_start + samples_per_window
-			audio_segment = audio[sliding_window_start:sliding_window_end]
-			audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
-			audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
-			audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
-			audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
+	#perform separation over the whole audio using a sliding window approach
+	overlap_count = np.zeros((num_objects,audio_length))
+	sep_audio = np.zeros((num_objects,audio_length))
+	sliding_window_start = 0
+	data = {}
+	samples_per_window = opt.audio_window
+	while sliding_window_start + samples_per_window < audio_length:		
+		sliding_window_end = sliding_window_start + samples_per_window
+		audio_segment = audio[sliding_window_start:sliding_window_end]
+		audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
+		audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
+		audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
+		audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
+		predicted_masks = torch.tensor(np.zeros((num_objects, 1, audio_mags.shape[2],audio_mags.shape[3])))
+
+		for i in range(num_objects):
+			# get path of the single randomly sampled frame of the ith BB-image
+			frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")			
+			# Crop out the BB image from the sampled frame for each discovered class in the clip
+			object_image = Image.open(frame_path).convert('RGB').crop(
+				(clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i,-1]))
+
+			# reshape and normalize each BB image
+			objects_visuals = vision_transform(object_image).unsqueeze(0)
+
+			label = clip_det_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
+			objects_labels= (label)
 
 			#separate for video 1
 			log_audio_mags = torch.log(audio_mags + 1e-10)
 			visual_features = net_visual(objects_visuals.to(opt.device))
 
-			predicted_masks = gen_unet(log_audio_mags, visual_features)
-			
-			reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks, opt, log_freq=1)
-			
-			sep_audio[sliding_window_start:sliding_window_end] = sep_audio[sliding_window_start:sliding_window_end] + reconstructed_signal
-			overlap_count[sliding_window_start:sliding_window_end] = overlap_count[sliding_window_start:sliding_window_end] + 1
-			sliding_window_start = sliding_window_start + int(opt.hop_size * opt.audio_sampling_rate)
+			temp = gen_unet(log_audio_mags, visual_features).detach()
+			predicted_masks[i] = temp[0]
 
-		#deal with the last segment
-		audio_segment = audio[-samples_per_window:]
-		audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
-		audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
-		audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
-		audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
+		if opt.softmax_constraint:
+			pred_masks = softmax(predicted_masks.permute(1,0,2,3))
+			predicted_masks = pred_masks.permute(1,0,2,3)
+		
+		predicted_masks = predicted_masks.type(audio_mix_mags.type()).to(opt.device)
+		for i in range(num_objects):
+			reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks[i].unsqueeze(0), opt, log_freq=1)
+			sep_audio[i, sliding_window_start:sliding_window_end] = sep_audio[i,sliding_window_start:sliding_window_end] + reconstructed_signal
+			overlap_count[i, sliding_window_start:sliding_window_end] = overlap_count[i,sliding_window_start:sliding_window_end] + 1
 
-		#separate for video 1
+		sliding_window_start = sliding_window_start + int(opt.hop_size * opt.audio_sampling_rate)
+
+	audio_segment = audio[-samples_per_window:]
+	audio_mix_mags, audio_mix_phases = generate_spectrogram_magphase(audio_segment, opt.stft_frame, opt.stft_hop) 
+	audio_mix_mags = torch.FloatTensor(audio_mix_mags).unsqueeze(0)
+	audio_mix_phases = torch.FloatTensor(audio_mix_phases).unsqueeze(0)
+	audio_mags = audio_mix_mags.to(opt.device) #dont' care for testing
+
+	predicted_masks = torch.tensor(np.zeros((num_objects, 1, audio_mags.shape[2],audio_mags.shape[3])))
+
+	for i in range(num_objects):
+		# get path of the single randomly sampled frame of the ith BB-image
+		frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")			
+		# Crop out the BB image from the sampled frame for each discovered class in the clip
+		object_image = Image.open(frame_path).convert('RGB').crop((clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i,-1]))
+
+        # reshape and normalize each BB image
+		objects_visuals = vision_transform(object_image).unsqueeze(0)
+
+		label = clip_det_bbs[i, 1] - 1  # convert class label to zero-based index, i.e., [0, 15] => [-1, 14]
+		objects_labels= (label)
+
+        #separate for video 1
 		log_audio_mags = torch.log(audio_mags + 1e-10)
 		visual_features = net_visual(objects_visuals.to(opt.device))
-		predicted_masks = gen_unet(log_audio_mags, visual_features)
 
-		reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks, opt, log_freq=1)
-		sep_audio[-samples_per_window:] = sep_audio[-samples_per_window:] + reconstructed_signal
-		overlap_count[-samples_per_window:] = overlap_count[-samples_per_window:] + 1
+		temp = gen_unet(log_audio_mags, visual_features).detach()
+		predicted_masks[i] = temp[0]
 
-		#divide the aggregated predicted audio by the overlap count
-		separation1 = clip_audio(np.divide(sep_audio, overlap_count) * 2)
+	if opt.softmax_constraint:
+		#print('here')
+		pred_masks = softmax(predicted_masks.permute(1,0,2,3))
+		predicted_masks = pred_masks.permute(1,0,2,3)
+	
+	predicted_masks = predicted_masks.type(audio_mix_mags.type()).to(opt.device)
+	for i in range(num_objects):
+		reconstructed_signal = get_separated_audio(audio_mix_mags, audio_mix_phases, predicted_masks[i].unsqueeze(0), opt, log_freq=1)
+		sep_audio[i, -samples_per_window:] = sep_audio[i,-samples_per_window:] + reconstructed_signal
+		overlap_count[i, -samples_per_window:] = overlap_count[i,-samples_per_window:] + 1
 
-		#output original and separated audios
-		output_dir = os.path.join('./results/', opt_folder)#os.path.join(opt.output_dir_root, opt.video1_name + 'VS' + opt.video2_name)
-		#print(output_dir)
-		if not os.path.isdir(output_dir):
-			os.mkdir(output_dir)
-		#sf.write(os.path.join(output_dir, 'audio_mixed.wav'), audio, opt.audio_sampling_rate, 'PCM_24')
-		#sf.write(os.path.join(output_dir, f'audio{i}_separated.wav'), separation1, opt.audio_sampling_rate, 'PCM_24')
+    # save objects
+	for i in range(num_objects):
+        #divide the aggregated predicted audio by the overlap count
+		separation = clip_audio(np.divide(sep_audio[i], overlap_count[i]) * 2)
+
+        #output original and separated audios
+		output_dir = os.path.join('./results/', opt.experiment_id, opt_folder)#os.path.join(opt.output_dir_root, opt.video1_name + 'VS' + opt.video2_name)
+        #print(output_dir)
+		if not os.path.isdir(output_dir): os.mkdir(output_dir)
+        #sf.write(os.path.join(output_dir, 'audio_mixed.wav'), audio, opt.audio_sampling_rate, 'PCM_24')
+        #sf.write(os.path.join(output_dir, f'audio{i}_separated.wav'), separation1, opt.audio_sampling_rate, 'PCM_24')
 		save_wav(os.path.join(output_dir, f'audio_mixed.wav'), audio, opt.audio_sampling_rate)
-		save_wav(os.path.join(output_dir, f'audio{i}_separated.wav'), separation1, opt.audio_sampling_rate)
-		#save the two detections
+		save_wav(os.path.join(output_dir, f'audio{i}_separated.wav'), separation, opt.audio_sampling_rate)
+        #save the two detections
+		frame_path = os.path.join(get_frames_path_MUSIC(clip_det_path), str(int(clip_det_bbs[i, 0])).zfill(6)+".png")			
+		object_image = Image.open(frame_path).convert('RGB').crop((clip_det_bbs[i,-4], clip_det_bbs[i,-3], clip_det_bbs[i,-2], clip_det_bbs[i,-1]))
 		object_image.save(os.path.join(output_dir,  f'audio{i}_det.png'))
-		

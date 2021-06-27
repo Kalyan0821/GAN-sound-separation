@@ -89,7 +89,7 @@ class MUSICDataset(Dataset):
 							"Violin": "violin",
 							"Piano": "xylophone"
 							}
-
+		# audio = self.load_all_audio(audio_path.txt)
 
 	def __len__(self):  # return number of examples (training/validation)
 		if self.opt.mode == 'train':
@@ -282,3 +282,23 @@ class MUSICDataset(Dataset):
 
 		return data
 
+	def load_all_binaural_audio(self):
+		# load all binaural audios into RAM for easy access
+		binaural_pickle_path = f'/home/kranthi/Datasets/fair-play/binaural_audios_exp12_{self.opt.mode}.pickle'
+		if os.path.exists(binaural_pickle_path):
+			with open(binaural_pickle_path, 'rb') as f:
+				binaural_audios = pickle.load(f)
+				print(f'loaded the data from {binaural_pickle_path}')
+		else:
+			binaural_audios = {}
+			binaural_audios_path = []
+			for idx in tqdm(range(len(self.audios))):
+				file_id = self.audios[idx]
+				audio_path = os.path.join('/home/kranthi/Datasets/fair-play/binaural_audios/', file_id+'.wav')
+				audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate, mono=False)
+				binaural_audios[audio_path] = audio
+			with open(binaural_pickle_path, 'wb') as f:
+				pickle.dump(binaural_audios, f, pickle.HIGHEST_PROTOCOL)
+				print(f'saved the data to {binaural_pickle_path}')
+
+		return binaural_audios    
