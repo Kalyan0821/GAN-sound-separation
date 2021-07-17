@@ -9,6 +9,7 @@ from .dataset_utils import get_vid_path_MUSIC, get_audio_path_MUSIC, get_frames_
 from .dataset_utils import sample_object_detections, sample_audio, augment_audio, generate_spectrogram_magphase, augment_image
 import numpy as np
 import librosa
+import time
 
 
 class MUSICDataset(Dataset):
@@ -117,8 +118,12 @@ class MUSICDataset(Dataset):
 							"Piano": "xylophone"
 							}
 
-		if opt.preload:
+		if self.opt.preload:
+			print("Preloading...")
+			t1 = time.time()
 			self.preload()
+			t2 = time.time()
+			print(f"Preloading time: {t2-t1}s\n")
 
 
 	def __len__(self):  # return number of examples (training/validation)
@@ -135,7 +140,7 @@ class MUSICDataset(Dataset):
 
 		clip_det_path = random.choice(self.detection_dic[video])  # randomly sample 1 clip from the video
 
-		if opt.preload:
+		if self.opt.preload:
 			clip_det_bbs = sample_object_detections(self.clip_det_dict[clip_det_path])  # B x 7 array (B discovered classes in the clip)
 		else:
 			clip_det_bbs = sample_object_detections(np.load(clip_det_path))
@@ -157,7 +162,7 @@ class MUSICDataset(Dataset):
 		# audio
 		audio_path = get_audio_path_MUSIC(clip_det_path)
 
-		if opt.preload:
+		if self.opt.preload:
 			audio, audio_rate = self.audio_dict[audio_path]  # load audio of clip at 11025 Hz (default)
 		else:
 			audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate)
@@ -228,7 +233,7 @@ class MUSICDataset(Dataset):
 
 			clean_audio_path = get_audio_path_MUSIC(clean_detection_path)
 
-			if opt.preload:
+			if self.opt.preload:
 				clean_audio, clean_audio_rate = self.clean_audio_dict[clean_audio_path]
 			else:
 				clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
@@ -238,7 +243,7 @@ class MUSICDataset(Dataset):
 			solos_audio_mag.append(torch.FloatTensor(clean_audio_mag).unsqueeze(0))
 			solos_audio_phase.append(torch.FloatTensor(clean_audio_phase).unsqueeze(0))		
 
-			if opt.preload:
+			if self.opt.preload:
 				clean_detection_bbs = sample_object_detections(self.clean_detection_dict[clean_detection_path])  # B x 7 array
 			else:
 				clean_detection_bbs = sample_object_detections(np.load(clean_detection_path))  # B x 7 array

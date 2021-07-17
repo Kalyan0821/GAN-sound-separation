@@ -1,12 +1,13 @@
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=0
 
+export EXP_ID="music_vanilla_less_consistency_short"
 python train.py \
-	   --experiment_id music_vanilla_softmax_beta9 \
+	   --experiment_id $EXP_ID \
 	   --dataset MUSIC \
    	   --num_epochs 100 \
 	   --batchSize 16 \
 	   --num_batch 30000 \
-  	   --softmax_constraint True \
+  	   --softmax_constraint False \
    	   --consistency_loss_weight 20 \
    	   --mask_loss_type L1 \
 	   --num_disc_updates 1 \
@@ -22,8 +23,9 @@ python train.py \
 	   --optimizer adam \
 	   --beta1 0.9 \
 	   --weight_decay 0.0001 \
-   	   --tensorboard True |& tee logs/music_vanilla_softmax_beta9.txt
-
-
-
+   	   --tensorboard True \
+	   --audio_window 6946 \
+	   --stft_frame 512 \
+	   --stft_hop 160 \
+	   --preload False |& tee logs/$EXP_ID.txt
 
