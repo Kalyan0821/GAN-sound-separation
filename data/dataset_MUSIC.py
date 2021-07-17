@@ -12,6 +12,33 @@ import librosa
 
 
 class MUSICDataset(Dataset):
+
+	def preload(self):
+
+		self.clip_det_dict = dict()
+		self.audio_dict = dict()
+		self.clean_audio_dict = dict()
+		self.clean_detection_dict = dict()
+
+		for video in self.detection_dic:
+			for clip_det_path in self.detection_dic[video]:
+
+				self.clip_det_dict[clip_det_path] = np.load(clip_det_path)
+
+				audio_path = get_audio_path_MUSIC(clip_det_path)
+				audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate)
+				self.audio_dict[audio_path] = (audio, audio_rate)
+
+		for music_label in self.train_solos_dict:
+			for clean_detection_path in self.train_solos_dict[music_label]:
+				
+				clean_audio_path = get_audio_path_MUSIC(clean_detection_path)
+				clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
+				self.clean_audio_dict[clean_audio_path] = (clean_audio, clean_audio_rate)
+
+				self.clean_detection_dict[clean_detection_path] = np.load(clean_detection_path)	
+
+
 	def __init__(self, opt):
 		super().__init__()
 
@@ -89,7 +116,10 @@ class MUSICDataset(Dataset):
 							"Violin": "violin",
 							"Piano": "xylophone"
 							}
-		# audio = self.load_all_audio(audio_path.txt)
+
+		if opt.preload:
+			self.preload()
+
 
 	def __len__(self):  # return number of examples (training/validation)
 		if self.opt.mode == 'train':
@@ -104,7 +134,12 @@ class MUSICDataset(Dataset):
 		ground_truth_labels = get_ground_truth_labels_MUSIC(video)		
 
 		clip_det_path = random.choice(self.detection_dic[video])  # randomly sample 1 clip from the video
-		clip_det_bbs = sample_object_detections(np.load(clip_det_path))  # B x 7 array (B discovered classes in the clip)
+
+		if opt.preload:
+			clip_det_bbs = sample_object_detections(self.clip_det_dict[clip_det_path])  # B x 7 array (B discovered classes in the clip)
+		else:
+			clip_det_bbs = sample_object_detections(np.load(clip_det_path))
+
 		detected_labels_idx = clip_det_bbs[:, 1].astype(int)  # all B detected class indices
 		assert clip_det_bbs.shape[0] != 0  
 		assert 0 not in clip_det_bbs[:, 1]  # Make sure __background__ is not a detected class
@@ -121,8 +156,14 @@ class MUSICDataset(Dataset):
 		clip_id = random.randint(1, 100000000000)  # generate a random UNIQUE integer id for each clip
 		# audio
 		audio_path = get_audio_path_MUSIC(clip_det_path)
-		audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate)  # load audio of clip at 11025 Hz (default)
-		audio_segment = sample_audio(audio, self.opt.audio_window)  # load close to 6 secs randomly (default 65535 samples)
+
+		if opt.preload:
+			audio, audio_rate = self.audio_dict[audio_path]  # load audio of clip at 11025 Hz (default)
+		else:
+			audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate)
+
+
+		audio_segment = sample_audio(audio, self.opt.audio_window)  # sample close to 6 secs randomly (default 65535 samples)
 		
 		if(self.opt.enable_data_augmentation and self.opt.mode == 'train'):  
 			audio_segment = augment_audio(audio_segment)
@@ -186,13 +227,23 @@ class MUSICDataset(Dataset):
 			clean_detection_path = random.choice(self.train_solos_dict[music_label])
 
 			clean_audio_path = get_audio_path_MUSIC(clean_detection_path)
-			clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
+
+			if opt.preload:
+				clean_audio, clean_audio_rate = self.clean_audio_dict[clean_audio_path]
+			else:
+				clean_audio, clean_audio_rate = librosa.load(clean_audio_path, sr=self.opt.audio_sampling_rate)
+
 			clean_audio_segment = sample_audio(clean_audio, self.opt.audio_window)
 			clean_audio_mag, clean_audio_phase = generate_spectrogram_magphase(clean_audio_segment, self.opt.stft_frame, self.opt.stft_hop)
 			solos_audio_mag.append(torch.FloatTensor(clean_audio_mag).unsqueeze(0))
 			solos_audio_phase.append(torch.FloatTensor(clean_audio_phase).unsqueeze(0))		
 
-			clean_detection_bbs = sample_object_detections(np.load(clean_detection_path))  # B x 7 array
+			if opt.preload:
+				clean_detection_bbs = sample_object_detections(self.clean_detection_dict[clean_detection_path])  # B x 7 array
+			else:
+				clean_detection_bbs = sample_object_detections(np.load(clean_detection_path))  # B x 7 array
+
+
 			clean_detected_labels_idx = clean_detection_bbs[:, 1].astype(int)  # all B detected class indices
 			assert clean_detection_bbs.shape[0] != 0
 			assert 0 not in clean_detection_bbs[:, 1]
@@ -281,24 +332,3 @@ class MUSICDataset(Dataset):
 			data['solo_audio_phases'] = solo_audio_phases  # B x 1 x F x T
 
 		return data
-
-	def load_all_binaural_audio(self):
-		# load all binaural audios into RAM for easy access
-		binaural_pickle_path = f'/home/kranthi/Datasets/fair-play/binaural_audios_exp12_{self.opt.mode}.pickle'
-		if os.path.exists(binaural_pickle_path):
-			with open(binaural_pickle_path, 'rb') as f:
-				binaural_audios = pickle.load(f)
-				print(f'loaded the data from {binaural_pickle_path}')
-		else:
-			binaural_audios = {}
-			binaural_audios_path = []
-			for idx in tqdm(range(len(self.audios))):
-				file_id = self.audios[idx]
-				audio_path = os.path.join('/home/kranthi/Datasets/fair-play/binaural_audios/', file_id+'.wav')
-				audio, audio_rate = librosa.load(audio_path, sr=self.opt.audio_sampling_rate, mono=False)
-				binaural_audios[audio_path] = audio
-			with open(binaural_pickle_path, 'wb') as f:
-				pickle.dump(binaural_audios, f, pickle.HIGHEST_PROTOCOL)
-				print(f'saved the data to {binaural_pickle_path}')
-
-		return binaural_audios    
